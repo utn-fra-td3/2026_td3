@@ -23,7 +23,7 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico2 CACHE STRING "Board type")
+set(PICO_BOARD pico2_w CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -32,9 +32,6 @@ project(freertos_queue_basic C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
-
-# Add external FreeRTOS library
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../freertos ${CMAKE_BINARY_DIR}/freertos)
 
 # Add executable. Default name is the project name, version 0.1
 
@@ -48,15 +45,16 @@ pico_enable_stdio_uart(freertos_queue_basic 0)
 pico_enable_stdio_usb(freertos_queue_basic 1)
 
 # Add the standard library to the build
-target_link_libraries(freertos_queue_basic
-    pico_stdlib
-    freertos
-)
+target_link_libraries(freertos_queue_basic pico_stdlib)
 
 # Add the standard include files to the build
-target_include_directories(freertos_queue_basic PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}
-)
+target_include_directories(freertos_queue_basic PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 pico_add_extra_outputs(freertos_queue_basic)
 
+# Habilito FreeRTOSConfig.h de la aplicación (si el archivo existe)
+set(APP_FREERTOS_CONFIG "${CMAKE_CURRENT_LIST_DIR}" CACHE PATH "Custom FreeRTOSConfig.h path")
+# Añadir la subcarpeta donde está la biblioteca FreeRTOS
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../freertos ${CMAKE_BINARY_DIR}/freertos)
+# Agrega dependencia al proyecto
+target_link_libraries(${PROJECT_NAME} freertos)

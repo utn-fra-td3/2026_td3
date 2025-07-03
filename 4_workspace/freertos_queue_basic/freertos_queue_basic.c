@@ -10,20 +10,7 @@
 QueueHandle_t queue_random;
 
 /**
- * @brief Tarea de inicializacion
- */
-void task_init(void *params) {
-    // Inicializa semilla para numeros pseudoaleatorios
-    srand(xTaskGetTickCount());
-    // Inicializa la cola
-    queue_random = xQueueCreate(1, sizeof(uint32_t));
-    // Elimina la tarea para liberar recursos
-    vTaskDelete(NULL);
-}
-
-/**
- * @brief Tarea que genera un numero aleatorio y lo manda
- * por una cola
+ * @brief Tarea que genera un numero aleatorio y lo manda por una cola
  */
 void task_random(void *params) {
 
@@ -38,8 +25,7 @@ void task_random(void *params) {
 }
 
 /**
- * @brief Tarea que escribe por consola lo que llega
- * de la cola
+ * @brief Tarea que escribe por consola lo que llega de la cola
  */
 void task_print(void *params) {
 
@@ -56,10 +42,15 @@ void task_print(void *params) {
  * @brief Programa principal
  */
 int main(void) {
+
     stdio_init_all();
 
+    // Inicializa semilla para numeros pseudoaleatorios
+    srand(xTaskGetTickCount());
+    // Inicializa la cola
+    queue_random = xQueueCreate(1, sizeof(uint32_t));
+
     // Creacion de tareas
-    xTaskCreate(task_init, "Init", configMINIMAL_STACK_SIZE, NULL, 2, NULL);
     xTaskCreate(task_random, "RNG", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
     xTaskCreate(task_print, "Print", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 
