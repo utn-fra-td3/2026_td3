@@ -34,6 +34,8 @@ firmware
 
 En caso de que no exista, el proyecto simplemente hace uso de la configuración provista en la biblioteca. Un template de FreeRTOSConfig.h se provee en la siguiente sección.
 
+> ⚙️ Ya sea que se pase de usar el FreeRTOSConfig.h de la biblioteca al propio o viceversa, se recomienda hacer una limpieza de los archivos de CMake a través del comando _Clean CMake_ de la extensión de Raspberry Pi Pico antes de compilar.
+
 ### Template de FreeRTOSConfig.h
 
 Este template provee una configuración **mínima** para que el sistema operativo corra con un blinky. El uso de otros recursos como semáforos, colas y APIs entre otros queda sujeto a configuraciones adicionales. Para más detalles en cuanto a esa configuración, recomendamos hacer una lectura a la [documentación](https://www.freertos.org/Documentation/02-Kernel/03-Supported-devices/02-Customization) de FreeRTOS acerca de la customización del sistema operativo.
@@ -177,17 +179,17 @@ Este template provee una configuración **mínima** para que el sistema operativ
  * @brief Habilita el uso de Software Timers usados en el port del RP2040/RP2350
  * @see Barry, R. "Mastering the FreeRTOS Real Time Kernel", Sección 5.1
  */
-#define configUSE_TIMERS              1
+#define configUSE_TIMERS  1
 /**
  * @brief Máxima prioridad disponible para el Timer Service Task
  * @see Barry, R. "Mastering the FreeRTOS Real Time Kernel", Sección 5.4
  */
-#define configTIMER_TASK_PRIORITY     (configMAX_PRIORITIES - 1)
+#define configTIMER_TASK_PRIORITY (configMAX_PRIORITIES - 1)
 /**
  * @brief Máxima cantidad de elementos para la cola de comandos del Timer Service Task
  * @see Barry, R. "Mastering the FreeRTOS Real Time Kernel", Sección 5.4
  */
-#define configTIMER_QUEUE_LENGTH      10
+#define configTIMER_QUEUE_LENGTH  10
 /**
  * @brief Stack del Timer Service Task
  * @see Barry, R. "Mastering the FreeRTOS Real Time Kernel", Sección 5.4
@@ -200,12 +202,12 @@ Este template provee una configuración **mínima** para que el sistema operativ
  * @brief Habilita el API vTaskDelay
  * @see AWS, "The FreeRTOS™ Reference Manual", Sección 2.10
  */
-#define INCLUDE_vTaskDelay              1
+#define INCLUDE_vTaskDelay  1
 /**
  * @brief Habilita la API vTaskDelete
  * @see AWS, "The FreeRTOS™ Reference Manual", Sección 2.12
  */
-#define INCLUDE_vTaskDelete             1
+#define INCLUDE_vTaskDelete 1
 /**
  * @brief Habilita la API xTimerPendFunctionCall usada por el port del RP2040/RP2350
  * @see AWS, "The FreeRTOS™ Reference Manual", Sección 5.13
@@ -224,4 +226,4 @@ La biblioteca usa por defecto la implementación 4 de heap. Si por alguna razón
 set(FREERTOS_HEAP "heap_3" CACHE STRING "FreeRTOS heap implementation")
 ```
 
-> :warning: Si ya se compiló alguna vez FreeRTOS, esta línea no va a tener efecto. Es necesario eliminar el directorio de build y volver a generarlo.
+> ⚙️ Ya sea que se pase de usar el la implementación de heap de la biblioteca al propio o viceversa, se recomienda hacer una limpieza de los archivos de CMake a través del comando _Clean CMake_ de la extensión de Raspberry Pi Pico antes de compilar compilar.
