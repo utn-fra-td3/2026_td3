@@ -9,16 +9,6 @@
 SemaphoreHandle_t mutex;
 
 /**
- * @brief Tarea de inicializacion
- */
-void task_init(void *params) {
-    // Inicializo mutex
-    mutex = xSemaphoreCreateMutex();
-    // Elimino tarea para liberar recursos
-    vTaskDelete(NULL);
-}
-
-/**
  * @brief Tarea que usa vTaskDelay e imprime en 
  * consola la cantidad de ticks
  */
@@ -63,8 +53,10 @@ void task_delay_until(void *params) {
 int main(void) {
     stdio_init_all();
 
+    // Inicializo mutex
+    mutex = xSemaphoreCreateMutex();
+
     // Creacion de tareas
-    xTaskCreate(task_init, "Init", configMINIMAL_STACK_SIZE, NULL, 2, NULL);
     xTaskCreate(task_delay, "Delay", 2 * configMINIMAL_STACK_SIZE, NULL, 1, NULL);
     xTaskCreate(task_delay_until, "DelayUntil", 2 * configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 
