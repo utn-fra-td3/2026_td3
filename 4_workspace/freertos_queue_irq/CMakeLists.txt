@@ -35,7 +35,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(freertos_queue_irq freertos_queue_irq.c )
+add_executable(freertos_queue_irq freertos_queue_irq.c)
 
 pico_set_program_name(freertos_queue_irq "freertos_queue_irq")
 pico_set_program_version(freertos_queue_irq "0.1")
