@@ -51,7 +51,7 @@ Este template provee una configuración **mínima** para que el sistema operativ
  * 
  * Algunas lecturas adicionales para mayor customización:
  * 
- * - [1] Barry, R. "Mastering the FreeRTOS Real Time Kernel", https://www.freertos.org/media/2018/161204_Mastering_the_FreeRTOS_Real_Time_Kernel-A_Hands-On_Tutorial_Guide.pdf
+ * - [1] Barry, R. "Mastering the FreeRTOS Real Time Kernel", https://github.com/FreeRTOS/FreeRTOS-Kernel-Book/releases/download/V1.1.0/Mastering-the-FreeRTOS-Real-Time-Kernel.v1.1.0.pdf
  * - [2] AWS, "The FreeRTOS™ Reference Manual", https://www.freertos.org/media/2018/FreeRTOS_Reference_Manual_V10.0.0.pdf
  * - [3] AWS, Customization, https://www.freertos.org/Documentation/02-Kernel/03-Supported-devices/02-Customization
  * - [4] Gaurav Aggarwal, Using FreeRTOS on ARMv8-M Microcontrollers, https://www.freertos.org/Community/Blogs/2020/using-freertos-on-armv8-m-microcontrollers
