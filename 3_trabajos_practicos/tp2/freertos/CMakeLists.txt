@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.12)
-project(freertos)
 
 # Conditionally set Pico core (RP2350_ARM_NTZ for pico2 / RP2040 for pico)
 if(${PICO_BOARD} STREQUAL "pico2" OR ${PICO_BOARD} STREQUAL "pico2_w")
@@ -7,6 +6,12 @@ if(${PICO_BOARD} STREQUAL "pico2" OR ${PICO_BOARD} STREQUAL "pico2_w")
 elseif(${PICO_BOARD} STREQUAL "pico" OR ${PICO_BOARD} STREQUAL "pico_w")
     set(CORE RP2040)
 endif()
+
+# Default heap implementation
+if(NOT DEFINED FREERTOS_HEAP)
+    set(FREERTOS_HEAP "heap_4")
+endif()
+message(STATUS "FreeRTOS: Usando ${FREERTOS_HEAP}")
 
 # Add FreeRTOS source files
 add_library(freertos STATIC
@@ -16,8 +21,8 @@ add_library(freertos STATIC
     stream_buffer.c
     tasks.c
     timers.c
-    portable/MemMang/heap_3.c
     portable/GCC/${CORE}/port.c
+    portable/MemMang/${FREERTOS_HEAP}.c
 )
 
 # Add extra source files when core is RP2350
