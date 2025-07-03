@@ -2,11 +2,9 @@ cmake_minimum_required(VERSION 3.12)
 project(freertos)
 
 # Conditionally set Pico core (RP2350_ARM_NTZ for pico2 / RP2040 for pico)
-if(${PICO_BOARD} STREQUAL "pico2")
+if(${PICO_BOARD} STREQUAL "pico2" OR ${PICO_BOARD} STREQUAL "pico2_w")
     set(CORE RP2350_ARM_NTZ)
-elseif(${PICO_BOARD} STREQUAL "pico2_w")
-    set(CORE RP2350_ARM_NTZ)
-elseif(${PICO_BOARD} STREQUAL "pico")
+elseif(${PICO_BOARD} STREQUAL "pico" OR ${PICO_BOARD} STREQUAL "pico_w")
     set(CORE RP2040)
 endif()
 
@@ -30,11 +28,22 @@ target_sources(freertos PRIVATE
 )
 endif()
 
+# Library FreeRTOSConfig.h or application FreeRTOSConfig.h?
+if(DEFINED APP_FREERTOS_CONFIG AND EXISTS "${APP_FREERTOS_CONFIG}/FreeRTOSConfig.h")
+    message(STATUS "FreeRTOS: Usando un FreeRTOSConfig.h de aplicación desde ${APP_FREERTOS_CONFIG}")
+    set(FREERTOS_CONFIG_DIR ${APP_FREERTOS_CONFIG})
+else()
+    message(STATUS "FreeRTOS: Usando default FreeRTOSConfig.h")
+    set(FREERTOS_CONFIG_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+endif()
+
 # Include FreeRTOS header files
 target_include_directories(freertos PUBLIC
-    include
-    portable/GCC/${CORE}/include
+    ${FREERTOS_CONFIG_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/portable/GCC/${CORE}/include
 )
+
 
 # Add dependencies
 target_link_libraries(freertos PUBLIC pico_stdlib hardware_exception)
