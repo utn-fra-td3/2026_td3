@@ -49,7 +49,7 @@ target_link_libraries(freertos_blinky pico_stdlib)
 
 # Add CYW43 if Pico W/Pico 2W
 if (PICO_CYW43_SUPPORTED)
-    target_link_libraries(freertos_blinky pico_cyw43_arch_none)
+    target_link_libraries(${PROJECT_NAME} pico_cyw43_arch_none)
 endif()
 
 # Add the standard include files to the build
