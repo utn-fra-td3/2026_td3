@@ -27,23 +27,6 @@ void irq_callback(uint gpio, uint32_t event_mask) {
 }
 
 /**
- * @brief Tarea de inicializacion
- */
-void task_init(void *params) {
-    // Inicializacion de GPIO
-    gpio_init(APP_IN);
-    gpio_init(APP_OUT);
-    gpio_set_dir(APP_IN, false);
-    gpio_set_dir(APP_OUT, true);
-    // Agrego interrupcion por flanco descendente
-    gpio_set_irq_enabled_with_callback(APP_IN, GPIO_IRQ_EDGE_FALL, true, irq_callback);
-    // Creo semaforo
-    semphr_counting = xSemaphoreCreateCounting(MAX_COUNT, 0);
-    // Elimino tarea para liberar recursos
-    vTaskDelete(NULL);
-}
-
-/**
  * @brief Tarea que manda la cuenta final por consola y 
  * limpia el semaforo
  */
@@ -79,8 +62,17 @@ void task_out(void *params) {
 int main(void) {
     stdio_init_all();
 
+    // Inicializacion de GPIO
+    gpio_init(APP_IN);
+    gpio_init(APP_OUT);
+    gpio_set_dir(APP_IN, false);
+    gpio_set_dir(APP_OUT, true);
+    // Agrego interrupcion por flanco descendente
+    gpio_set_irq_enabled_with_callback(APP_IN, GPIO_IRQ_EDGE_FALL, true, irq_callback);
+    // Creo semaforo
+    semphr_counting = xSemaphoreCreateCounting(MAX_COUNT, 0);
+
     // Creacion de tareas
-    xTaskCreate(task_init, "Init", configMINIMAL_STACK_SIZE, NULL, 3, NULL);
     xTaskCreate(task_clear, "Clr", 2 * configMINIMAL_STACK_SIZE, NULL, 2, NULL);
     xTaskCreate(task_out, "Out", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 
