@@ -19,20 +19,6 @@ typedef struct {
 QueueHandle_t queue_sensor;
 
 /**
- * @brief Tarea de inicializacion
- */
-void task_init(void *params) {
-    // Inicializacion del ADC y sensor de temperatura
-    adc_init();
-    adc_set_temp_sensor_enabled(true);
-    adc_select_input(ADC_TEMPERATURE_CHANNEL_NUM);
-    // Inicializacion de cola para estructura
-    queue_sensor = xQueueCreate(1, sizeof(sensor_data_t));
-    // Elimino tarea para liberar recursos
-    vTaskDelete(NULL);
-}
-
-/**
  * @brief Tarea que escribe por consola
  */
 void task_print(void *params) {
@@ -76,11 +62,17 @@ int main(void) {
 
     stdio_init_all();
 
+    // Inicializacion del ADC y sensor de temperatura
+    adc_init();
+    adc_set_temp_sensor_enabled(true);
+    adc_select_input(ADC_TEMPERATURE_CHANNEL_NUM);
+    // Inicializacion de cola para estructura
+    queue_sensor = xQueueCreate(1, sizeof(sensor_data_t));
+
     // Creacion de tareas
-    xTaskCreate(task_init, "Init", configMINIMAL_STACK_SIZE, NULL, 3, NULL);
     xTaskCreate(task_print, "Print", 2 * configMINIMAL_STACK_SIZE, NULL, 2, NULL);
     xTaskCreate(task_adc, "ADC", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
     // Arranca el sistema operativo
     vTaskStartScheduler();
-    while (true);
+    while(true);
 }
