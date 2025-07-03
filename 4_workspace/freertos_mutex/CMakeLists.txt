@@ -48,9 +48,7 @@ pico_enable_stdio_usb(freertos_mutex 1)
 target_link_libraries(freertos_mutex pico_stdlib)
 
 # Add the standard include files to the build
-target_include_directories(freertos_mutex PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}
-)
+target_include_directories(freertos_mutex PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 pico_add_extra_outputs(freertos_mutex)
 
