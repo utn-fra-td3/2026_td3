@@ -48,26 +48,6 @@ void adc_irq_handler(void) {
 }
 
 /**
- * @brief Tarea de inicializacion
- */
-void task_init(void *params) {
-    // Inicializacion de cola para estructura
-    queue_sensor = xQueueCreate(1, sizeof(sensor_data_t));
-    // Inicializacion del ADC y sensor de temperatura
-    adc_init();
-    adc_set_temp_sensor_enabled(true);
-    adc_select_input(ADC_TEMPERATURE_CHANNEL_NUM);
-    // Inicializo la interrupcion del ADC y la cantidad de lecturas necesarias
-    adc_fifo_setup(true, false, SAMPLES, false, false);
-    adc_irq_set_enabled(true);
-    irq_set_exclusive_handler(ADC_IRQ_FIFO, adc_irq_handler);
-    irq_set_enabled(ADC_IRQ_FIFO, true);
-    adc_run(true);
-    // Elimino tarea para liberar recursos
-    vTaskDelete(NULL);
-}
-
-/**
  * @brief Tarea que escribe por consola
  */
 void task_print(void *params) {
@@ -106,12 +86,23 @@ void task_adc(void *params) {
 int main(void) {
 
     stdio_init_all();
+    // Inicializacion de cola para estructura
+    queue_sensor = xQueueCreate(1, sizeof(sensor_data_t));
+    // Inicializacion del ADC y sensor de temperatura
+    adc_init();
+    adc_set_temp_sensor_enabled(true);
+    adc_select_input(ADC_TEMPERATURE_CHANNEL_NUM);
+    // Inicializo la interrupcion del ADC y la cantidad de lecturas necesarias
+    adc_fifo_setup(true, false, SAMPLES, false, false);
+    adc_irq_set_enabled(true);
+    irq_set_exclusive_handler(ADC_IRQ_FIFO, adc_irq_handler);
+    irq_set_enabled(ADC_IRQ_FIFO, true);
+    adc_run(true);
 
     // Creacion de tareas
-    xTaskCreate(task_init, "Init", configMINIMAL_STACK_SIZE, NULL, 3, NULL);
     xTaskCreate(task_print, "Print", 2 * configMINIMAL_STACK_SIZE, NULL, 2, NULL);
     xTaskCreate(task_adc, "ADC", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
     // Arranca el sistema operativo
     vTaskStartScheduler();
-    while (true);
+    while(true);
 }
