@@ -57,8 +57,10 @@ target_include_directories(freertos_software_timer BEFORE PRIVATE ${CMAKE_CURREN
 
 pico_add_extra_outputs(freertos_software_timer)
 
-# Habilito FreeRTOSConfig.h de la aplicación (si el archivo existe)
-set(APP_FREERTOS_CONFIG "${CMAKE_CURRENT_LIST_DIR}" CACHE PATH "Custom FreeRTOSConfig.h path")
+# Configuración adicional de FreeRTOS de la aplicación (si el archivo existe)
+set(FREERTOS_USER_CONFIG "${CMAKE_CURRENT_LIST_DIR}" CACHE PATH "User FreeRTOSConfig path")
+# Habilito uso de memoria dinámica
+set(FREERTOS_SUPPORT_DYNAMIC_ALLOCATION "ON" CACHE PATH "FreeRTOS dynamic memory implementation support")
 # Añadir la subcarpeta donde está la biblioteca FreeRTOS
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../freertos ${CMAKE_BINARY_DIR}/freertos)
 # Agrega dependencia al proyecto
