@@ -205,4 +205,9 @@
  */
 #define INCLUDE_vTaskSuspend  1
 
+#ifdef FREERTOS_USER_CONFIG
+#include "FreeRTOSConfig_User.h"
+#endif
+
+
 #endif /* FREERTOS_CONFIG_H */
