@@ -28,6 +28,7 @@ Los ejemplos de FreeRTOS se mencionan a continuación separados por temáticas c
 | --- | --- |
 | [freertos_queue_basic](freertos_queue_basic) | Ejemplo de implementación de una cola de tipo de dato sencillo |
 | [freertos_queue_typedef](freertos_queue_typedef) | Ejemplo de colas con datos complejos como estructuras |
+| [freertos_static_queue](freertos_static_queue) | Ejemplo de cola con datos complejos como estructuras pero usando recursos estáticos |
 
 ### Software Timer Management
 
