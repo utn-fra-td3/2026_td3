@@ -58,8 +58,8 @@ pico_add_extra_outputs(freertos_static_blinky)
 
 # Configuración adicional de FreeRTOS de la aplicación (si el archivo existe)
 set(FREERTOS_USER_CONFIG "${CMAKE_CURRENT_LIST_DIR}" CACHE PATH "User FreeRTOSConfig path")
-# Habilito uso de memoria dinámica
-set(FREERTOS_SUPPORT_DYNAMIC_ALLOCATION "OFF" CACHE PATH "FreeRTOS memory implementation")
+# Deshabilito el uso de memoria dinámica
+set(FREERTOS_SUPPORT_DYNAMIC_ALLOCATION "OFF" CACHE PATH "FreeRTOS dynamic memory implementation support")
 # Añadir la subcarpeta donde está la biblioteca FreeRTOS
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../freertos ${CMAKE_BINARY_DIR}/freertos)
 # Agrega dependencia al proyecto
