@@ -1,10 +1,12 @@
 // --- Includes ---
 #include "lcd_display.h"
 #include "driver/spi_master.h"
+#include "driver/i2c_master.h"
 #include "driver/gpio.h"
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_vendor.h"
 #include "esp_lcd_panel_ops.h"
+#include "esp_lcd_touch_cst816s.h"
 #include "esp_lvgl_port.h"
 #include "esp_log.h"
 #include "ui.h"
@@ -20,16 +22,23 @@
 #define LCD_H_RES 320
 #define LCD_V_RES 240
 
+#define TOUCH_SDA GPIO_NUM_48
+#define TOUCH_SCL GPIO_NUM_47
+#define TOUCH_INT GPIO_NUM_46
+
 // --- Variables privadas ---
 static const char *TAG = "lcd_display";
 
 static esp_lcd_panel_io_handle_t io_handle = NULL;
 static esp_lcd_panel_handle_t panel_handle = NULL;
 static lv_disp_t *disp_handle = NULL;
+static i2c_master_bus_handle_t i2c_bus = NULL;
+static esp_lcd_touch_handle_t tp_handle = NULL;
 
 // --- Prototipos privados ---
 static void lcd_init(void);
 static void lvgl_init(void);
+static void touch_init(void);
 
 // --- Funciones ---
 
@@ -105,21 +114,67 @@ static void lvgl_init(void)
     ESP_LOGI(TAG, "LVGL inicializado");
 }
 
+static void touch_init(void)
+{
+    i2c_master_bus_config_t i2c_cfg = {
+        .i2c_port = I2C_NUM_0,
+        .sda_io_num = TOUCH_SDA,
+        .scl_io_num = TOUCH_SCL,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
+    };
+    ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_cfg, &i2c_bus));
+
+    esp_lcd_panel_io_handle_t tp_io = NULL;
+    esp_lcd_panel_io_i2c_config_t tp_io_cfg = ESP_LCD_TOUCH_IO_I2C_CST816S_CONFIG();
+    ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c(i2c_bus, &tp_io_cfg, &tp_io));
+
+    esp_lcd_touch_config_t tp_cfg = {
+        .x_max = LCD_V_RES,
+        .y_max = LCD_H_RES,
+        .rst_gpio_num = GPIO_NUM_NC,
+        .int_gpio_num = TOUCH_INT,
+        .levels = {
+            .reset = 0,
+            .interrupt = 0,
+        },
+        .flags = {
+            .swap_xy = true,
+            .mirror_x = true,
+            .mirror_y = false,
+        },
+    };
+    ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_cst816s(tp_io, &tp_cfg, &tp_handle));
+
+    const lvgl_port_touch_cfg_t touch_cfg = {
+        .disp = disp_handle,
+        .handle = tp_handle,
+    };
+    lvgl_port_add_touch(&touch_cfg);
+
+    ESP_LOGI(TAG, "Touch CST816D inicializado");
+}
+
 void task_lcd_display(void *pvParameters)
 {
     lcd_init();
     lvgl_init();
+    touch_init();
 
-    if (lvgl_port_lock(0))
-    {
-        ui_init();
-        lvgl_port_unlock();
-    }
+    configASSERT(lvgl_port_lock(portMAX_DELAY));
+    ui_init();
+    lvgl_port_unlock();
 
-    ESP_LOGI(TAG, "Display listo");
+    ESP_LOGI(TAG, "UI inicializada");
 
     while (1)
     {
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
+}
+
+void on_btn_test_clicked(lv_event_t *e)
+{
+    ESP_LOGI(TAG, "Touch OK");
 }
