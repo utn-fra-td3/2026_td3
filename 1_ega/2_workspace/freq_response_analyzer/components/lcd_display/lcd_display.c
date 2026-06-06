@@ -7,6 +7,7 @@
 #include "esp_lcd_panel_ops.h"
 #include "esp_lvgl_port.h"
 #include "esp_log.h"
+#include "ui.h"
 
 // --- Defines privados ---
 #define LCD_SCLK GPIO_NUM_39
@@ -111,11 +112,7 @@ void task_lcd_display(void *pvParameters)
 
     if (lvgl_port_lock(0))
     {
-        lv_obj_t *screen = lv_screen_active();
-        lv_obj_set_style_bg_color(screen, lv_color_hex(0xFF0000), LV_PART_MAIN);
-        lv_obj_t *label = lv_label_create(screen);
-        lv_label_set_text(label, "Prueba de Display");
-        lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+        ui_init();
         lvgl_port_unlock();
     }
 
