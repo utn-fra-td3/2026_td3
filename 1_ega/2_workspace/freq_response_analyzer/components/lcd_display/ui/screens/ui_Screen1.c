@@ -8,6 +8,7 @@
 lv_obj_t * ui_Screen1 = NULL;
 lv_obj_t * ui_Button1 = NULL;
 lv_obj_t * ui_Label1 = NULL;
+lv_obj_t * ui_Label2 = NULL;
 // event funtions
 void ui_event_Button1(lv_event_t * e)
 {
@@ -24,6 +25,7 @@ void ui_Screen1_screen_init(void)
 {
     ui_Screen1 = lv_obj_create(NULL);
     lv_obj_remove_flag(ui_Screen1, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+    lv_obj_set_style_text_font(ui_Screen1, &ui_font_robotomono_14, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Button1 = lv_button_create(ui_Screen1);
     lv_obj_set_width(ui_Button1, 100);
@@ -38,6 +40,15 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_align(ui_Label1, LV_ALIGN_CENTER);
     lv_label_set_text(ui_Label1, "Button 1");
 
+    ui_Label2 = lv_label_create(ui_Screen1);
+    lv_obj_set_width(ui_Label2, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label2, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_Label2, -2);
+    lv_obj_set_y(ui_Label2, -58);
+    lv_obj_set_align(ui_Label2, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_Label2, "áéíóúüñÁÉÍÓÚÜÑ¿¡");
+    lv_obj_set_style_text_font(ui_Label2, &ui_font_robotomono_14, LV_PART_MAIN | LV_STATE_DEFAULT);
+
     lv_obj_add_event_cb(ui_Button1, ui_event_Button1, LV_EVENT_ALL, NULL);
 
 }
@@ -50,5 +61,6 @@ void ui_Screen1_screen_destroy(void)
     ui_Screen1 = NULL;
     ui_Button1 = NULL;
     ui_Label1 = NULL;
+    ui_Label2 = NULL;
 
 }
