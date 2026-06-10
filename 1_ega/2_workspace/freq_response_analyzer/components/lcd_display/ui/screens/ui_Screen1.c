@@ -43,11 +43,10 @@ void ui_Screen1_screen_init(void)
     ui_Label2 = lv_label_create(ui_Screen1);
     lv_obj_set_width(ui_Label2, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label2, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label2, -2);
-    lv_obj_set_y(ui_Label2, -58);
+    lv_obj_set_x(ui_Label2, -3);
+    lv_obj_set_y(ui_Label2, -48);
     lv_obj_set_align(ui_Label2, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_Label2, "áéíóúüñÁÉÍÓÚÜÑ¿¡");
-    lv_obj_set_style_text_font(ui_Label2, &ui_font_robotomono_14, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_label_set_text(ui_Label2, "á é í ó ú Á É Í Ó Ú ñ Ñ ü Ü ¿ ? ¡ !");
 
     lv_obj_add_event_cb(ui_Button1, ui_event_Button1, LV_EVENT_ALL, NULL);
 
