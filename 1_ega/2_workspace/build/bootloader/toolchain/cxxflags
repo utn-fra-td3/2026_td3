@@ -1,0 +1,6 @@
+"-specs=C:/Users/ariel/proyecto_nuevo1/proyecto_nuevo1/build/bootloader/specs/picolibc.specs"
+-mlongcalls
+-fno-builtin-memcpy
+-fno-builtin-memset
+-fno-builtin-bzero
+-fno-rtti
