@@ -14,9 +14,25 @@ void task_sweep(void *pvParameters)
     int mv_vin = 0;
     int mv_vout = 0;
 
-    //ad9833_init();
+    ad9833_init();
     adc_init();
 
+    /*Prueba de DDS*/
+    ad9833_set_freq(100000);
+    ESP_LOGI(TAG, "AD9833 set freq 100 kHz");
+    while (1)
+    {
+        ad9833_enable_output();
+        ESP_LOGI(TAG, "AD9833 ON");
+        vTaskDelay(pdMS_TO_TICKS(5000));
+
+        ad9833_disable_output();
+        ESP_LOGI(TAG, "AD9833 OFF");
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
+
+    /*Prueba de ADC*/
+    /*
     while (1)
     {
         mv_vin = adc_read_vin_mv();
@@ -26,4 +42,5 @@ void task_sweep(void *pvParameters)
 
         vTaskDelay(pdMS_TO_TICKS(500));
     }
+    */
 }
