@@ -1,0 +1,14 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.extensionActivationMode": "always",
+  "idf.currentSetup": "/home/agustin/esp/v5.5.2/esp-idf",
+  "idf.buildPath": "${workspaceFolder}/build",
+  "clangd.path": "/home/agustin/.espressif/tools/esp-clang/esp-19.1.2_20250312/esp-clang/bin/clangd",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=/home/agustin/Documentos/CargaElectronicav0/build"
+  ],
+  "idf.flashType": "UART",
+  "idf.port": "/dev/ttyACM0"
+}
