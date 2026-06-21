@@ -86,7 +86,7 @@
 		(capping no)
 		(filling no)
 		(pcbplotparams
-			(layerselection 0x00000000_00000000_55555555_55555554)
+			(layerselection 0x00000000_00000000_5555555d_55555550)
 			(plot_on_all_layers_selection 0x00000000_00000000_00000000_02000000)
 			(disableapertmacros no)
 			(usegerberextensions no)
@@ -6274,7 +6274,7 @@
 			)
 		)
 		(property ki_fp_filters "SOIC*3.9x4.9mm*P1.27mm* DIP*W7.62mm* TO*99* OnSemi*Micro8* TSSOP*3x3mm*P0.65mm* TSSOP*4.4x3mm*P0.65mm* MSOP*3x3mm*P0.65mm* SSOP*3.9x4.9mm*P0.635mm* LFCSP*2x2mm*P0.5mm* *SIP* SOIC*5.3x6.2mm*P1.27mm*")
-		(path "/ad6e4822-b0fc-481b-9099-b2cf3a3932c9")
+		(path "/c5ab3245-4551-4f90-b285-d1adff473fa5")
 		(sheetname "/")
 		(sheetfile "Esquematico_EGA.kicad_sch")
 		(units
@@ -10654,7 +10654,7 @@
 				)
 			)
 		)
-		(property "Value" "Vin"
+		(property "Value" "DDS_out"
 			(at 0 2.38 0)
 			(layer "F.Fab")
 			(uuid "605b9f0e-6759-487f-8b1a-65e8f69a0bad")
@@ -15820,7 +15820,7 @@
 			)
 		)
 		(property ki_fp_filters "SOIC*3.9x4.9mm*P1.27mm* DIP*W7.62mm* TO*99* OnSemi*Micro8* TSSOP*3x3mm*P0.65mm* TSSOP*4.4x3mm*P0.65mm* MSOP*3x3mm*P0.65mm* SSOP*3.9x4.9mm*P0.635mm* LFCSP*2x2mm*P0.5mm* *SIP* SOIC*5.3x6.2mm*P1.27mm*")
-		(path "/5a69f23f-6b52-426d-88d8-a0cee537185e")
+		(path "/4dfbf97c-9419-44a2-83cf-972e1f089fe8")
 		(sheetname "/")
 		(sheetfile "Esquematico_EGA.kicad_sch")
 		(units
