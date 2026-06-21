@@ -28,7 +28,8 @@ void app_main(void)
     configASSERT(queue_display != NULL);
     // queue_nvs_cmd = xQueueCreate(QUEUE_NVS_CMD_LEN, sizeof(nvs_cmd_msg_t));
     // queue_uart_rx = xQueueCreate(QUEUE_UART_RX_LEN, sizeof(uint8_t));
-    // mutex_uart_tx = xSemaphoreCreateMutex();
+    mutex_uart_tx = xSemaphoreCreateMutex();
+    configASSERT(mutex_uart_tx != NULL);
     // sem_btn_press = xSemaphoreCreateBinary();
 
     // --- Arranque de tareas ---
@@ -37,6 +38,6 @@ void app_main(void)
     xTaskCreate(task_menu_config, "task_menu_config", TASK_MENU_CONFIG_STACK, NULL, TASK_MENU_CONFIG_PRIORITY, NULL);
     xTaskCreate(task_lcd_display, "task_lcd_display", TASK_LCD_DISPLAY_STACK, NULL, TASK_LCD_DISPLAY_PRIORITY, NULL);
     // xTaskCreate(task_sweep, "task_sweep", TASK_SWEEP_STACK, NULL, TASK_SWEEP_PRIORITY, NULL);
-    // xTaskCreate(task_uart, "task_uart", TASK_UART_STACK, NULL, TASK_UART_PRIORITY, NULL);
+    xTaskCreate(task_uart, "task_uart", TASK_UART_STACK, NULL, TASK_UART_PRIORITY, NULL);
     // xTaskCreate(task_nvs, "task_nvs", TASK_NVS_STACK, NULL, TASK_NVS_PRIORITY, NULL);
 }
