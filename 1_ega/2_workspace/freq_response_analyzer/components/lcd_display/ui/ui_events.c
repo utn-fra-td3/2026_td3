@@ -4,8 +4,26 @@
 // Project name: freq_response_analyzer
 
 #include "ui.h"
+#include "esp_log.h"
 
-void on_btn_test_clicked(lv_event_t * e)
+void ui_event_btn_start(lv_event_t * e)
 {
-	// Your code here
+    lv_disp_load_scr(ui_scrsweep);
+    ESP_LOGI("UI", "Barrido iniciado");
+}
+
+void ui_event_btn_pausar(lv_event_t * e)
+{
+	ESP_LOGI("UI", "Barrido pausado");
+}
+
+void ui_event_btn_config(lv_event_t * e)
+{
+    lv_disp_load_scr(ui_scrconfig);
+    ESP_LOGI("UI", "Volviendo a config");
+}
+
+void ui_event_btn_reiniciar(lv_event_t * e)
+{
+	ESP_LOGI("UI", "Reiniciando barrido");
 }

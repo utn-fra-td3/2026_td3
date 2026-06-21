@@ -1,16 +1,16 @@
 /*******************************************************************************
  * Size: 14 px
  * Bpp: 4
- * Opts: --bpp 4 --size 14 --font D:/Sync/UTN_2026/Tecnicas_Digitales_III/freq_response_analyzer Squeareline studio/assets/RobotoMono-Regular.ttf -o D:/Sync/UTN_2026/Tecnicas_Digitales_III/freq_response_analyzer Squeareline studio/assets\ui_font_robotomono_14.c --format lvgl -r 0x20-0x7F -r 0xC0-0xFF --symbols áéíóúüñÁÉÍÓÚÜÑ¿¡ --no-compress --no-prefilter
+ * Opts: --bpp 4 --size 14 --font D:/2026_td3_511_lapietra_matias/1_ega/2_workspace/Proyecto_SquareLine_Studio/assets/RobotoMono-Regular.ttf -o D:/2026_td3_511_lapietra_matias/1_ega/2_workspace/Proyecto_SquareLine_Studio/assets\ui_font_RobotoMono14.c --format lvgl -r 0x20-0x7F -r 0xA1 -r 0xBF -r 0xC0-0xFF --symbols áéíóúüñÁÉÍÓÚÜÑ¿¡ --no-compress --no-prefilter
  ******************************************************************************/
 
 #include "../ui.h"
 
-#ifndef UI_FONT_ROBOTOMONO_14
-#define UI_FONT_ROBOTOMONO_14 1
+#ifndef UI_FONT_ROBOTOMONO14
+#define UI_FONT_ROBOTOMONO14 1
 #endif
 
-#if UI_FONT_ROBOTOMONO_14
+#if UI_FONT_ROBOTOMONO14
 
 /*-----------------
  *    BITMAPS
@@ -1416,9 +1416,9 @@ static lv_font_fmt_txt_dsc_t font_dsc = {
 
 /*Initialize a public general font descriptor*/
 #if LVGL_VERSION_MAJOR >= 8
-const lv_font_t ui_font_robotomono_14 = {
+const lv_font_t ui_font_RobotoMono14 = {
 #else
-lv_font_t ui_font_robotomono_14 = {
+lv_font_t ui_font_RobotoMono14 = {
 #endif
     .get_glyph_dsc = lv_font_get_glyph_dsc_fmt_txt,    /*Function pointer to get glyph's data*/
     .get_glyph_bitmap = lv_font_get_bitmap_fmt_txt,    /*Function pointer to get glyph's bitmap*/
@@ -1440,5 +1440,5 @@ lv_font_t ui_font_robotomono_14 = {
 
 
 
-#endif /*#if UI_FONT_ROBOTOMONO_14*/
+#endif /*#if UI_FONT_ROBOTOMONO14*/
 

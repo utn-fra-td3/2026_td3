@@ -99,8 +99,8 @@ static void lvgl_init(void)
         .monochrome = false,
         .rotation = {
             .swap_xy = true,
-            .mirror_x = true,
-            .mirror_y = false,
+            .mirror_x = false,
+            .mirror_y = true,
         },
         .flags = {
             .buff_dma = true,
@@ -141,8 +141,8 @@ static void touch_init(void)
         },
         .flags = {
             .swap_xy = true,
-            .mirror_x = true,
-            .mirror_y = false,
+            .mirror_x = false,
+            .mirror_y = true,
         },
     };
     ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_cst816s(tp_io, &tp_cfg, &tp_handle));
@@ -172,9 +172,4 @@ void task_lcd_display(void *pvParameters)
     {
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
-}
-
-void on_btn_test_clicked(lv_event_t *e)
-{
-    ESP_LOGI(TAG, "Touch OK");
 }
