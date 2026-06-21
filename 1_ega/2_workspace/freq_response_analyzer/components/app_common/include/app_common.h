@@ -2,6 +2,7 @@
 #define APP_COMMON_H
 
 // --- Includes ---
+#include <stdint.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
@@ -28,8 +29,33 @@
 #define QUEUE_UART_RX_LEN            16
 
 // --- Enums ---
+typedef enum {
+    SWEEP_PARAM_FREC_INICIO,
+    SWEEP_PARAM_FREC_FINAL,
+    SWEEP_PARAM_PUNTOS,
+    SWEEP_PARAM_TIEMPO
+} sweep_param_e;
+
+typedef enum {
+    MENU_EVT_CONFIG_SET // valor de configuracion propuesto desde lcd_display/uart, a validar por task_menu_config
+} menu_evt_e;
+
+typedef enum {
+    DISPLAY_MSG_CONFIG_VALUE // valor de configuracion ya validado por task_menu_config, listo para mostrar
+} display_msg_type_e;
 
 // --- Tipos de mensajes ---
+typedef struct {
+    menu_evt_e    type;
+    sweep_param_e param;
+    uint32_t      value; // unidad base: Hz, puntos o segundos segun param
+} menu_event_msg_t;
+
+typedef struct {
+    display_msg_type_e type;
+    sweep_param_e       param;
+    uint32_t            value; // unidad base: Hz, puntos o segundos segun param
+} display_msg_t;
 
 // --- Handles compartidos (extern) ---
 extern QueueHandle_t     queue_menu_events;

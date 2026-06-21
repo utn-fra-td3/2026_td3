@@ -11,6 +11,8 @@
 #include "esp_log.h"
 #include "ui.h"
 #include "ui_scrconfig_kb.h"
+#include <stdbool.h>
+#include <stdio.h>
 
 // --- Defines privados ---
 #define LCD_SCLK GPIO_NUM_39
@@ -36,10 +38,18 @@ static lv_disp_t *disp_handle = NULL;
 static i2c_master_bus_handle_t i2c_bus = NULL;
 static esp_lcd_touch_handle_t tp_handle = NULL;
 
+static const char *UNIT_CONFIG[] = {"Hz", "Hz", "pts", "s"};
+
+static lv_obj_t **val_labels_config[] = {
+    &ui_lblvalue1, &ui_lblvalue2,
+    &ui_lblvalue3, &ui_lblvalue4
+};
+
 // --- Prototipos privados ---
 static void lcd_init(void);
 static void lvgl_init(void);
 static void touch_init(void);
+static void mostrar_config_value(sweep_param_e param, uint32_t value);
 
 // --- Funciones ---
 
@@ -170,8 +180,30 @@ void task_lcd_display(void *pvParameters)
 
     ESP_LOGI(TAG, "UI inicializada");
 
+    display_msg_t msg;
     while (1)
     {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        if (xQueueReceive(queue_display, &msg, portMAX_DELAY) == pdTRUE)
+        {
+            configASSERT(lvgl_port_lock(portMAX_DELAY));
+            switch (msg.type)
+            {
+            case DISPLAY_MSG_CONFIG_VALUE:
+                mostrar_config_value(msg.param, msg.value);
+                break;
+            }
+            lvgl_port_unlock();
+        }
     }
+}
+
+static void mostrar_config_value(sweep_param_e param, uint32_t value)
+{
+    char tmp[16];
+    bool es_frecuencia = (param == SWEEP_PARAM_FREC_INICIO || param == SWEEP_PARAM_FREC_FINAL);
+    if (es_frecuencia && value >= 1000)
+        snprintf(tmp, sizeof(tmp), "%lu kHz", value / 1000);
+    else
+        snprintf(tmp, sizeof(tmp), "%lu %s", value, UNIT_CONFIG[param]);
+    lv_label_set_text(*val_labels_config[param], tmp);
 }
