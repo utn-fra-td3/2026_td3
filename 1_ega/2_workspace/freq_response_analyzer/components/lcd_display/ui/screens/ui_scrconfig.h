@@ -19,6 +19,7 @@ extern lv_obj_t * ui_hdrleft;
 extern lv_obj_t * ui_dot;
 extern lv_obj_t * ui_lbltitle;
 extern lv_obj_t * ui_Label4;
+extern lv_obj_t * ui_uikbdisplay;
 extern lv_obj_t * ui_rowscont;
 extern lv_obj_t * ui_row1;
 extern lv_obj_t * ui_lblname1;
@@ -32,11 +33,10 @@ extern lv_obj_t * ui_lblvalue3;
 extern lv_obj_t * ui_row4;
 extern lv_obj_t * ui_lblname4;
 extern lv_obj_t * ui_lblvalue4;
-extern lv_obj_t * ui_cursor;
-extern lv_obj_t * ui_accentbar;
 extern void ui_event_btnstart(lv_event_t * e);
 extern lv_obj_t * ui_btnstart;
 extern lv_obj_t * ui_Label7;
+extern lv_obj_t * ui_Keyboard1;
 // CUSTOM VARIABLES
 extern lv_obj_t * uic_lbltitle;
 

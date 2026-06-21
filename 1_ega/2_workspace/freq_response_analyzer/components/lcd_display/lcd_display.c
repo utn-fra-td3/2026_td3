@@ -10,6 +10,7 @@
 #include "esp_lvgl_port.h"
 #include "esp_log.h"
 #include "ui.h"
+#include "ui_scrconfig_kb.h"
 
 // --- Defines privados ---
 #define LCD_SCLK GPIO_NUM_39
@@ -164,6 +165,7 @@ void task_lcd_display(void *pvParameters)
 
     configASSERT(lvgl_port_lock(portMAX_DELAY));
     ui_init();
+    ui_scrconfig_kb_init();
     lvgl_port_unlock();
 
     ESP_LOGI(TAG, "UI inicializada");
