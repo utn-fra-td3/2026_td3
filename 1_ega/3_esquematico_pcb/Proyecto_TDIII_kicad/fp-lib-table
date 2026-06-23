@@ -1,0 +1,5 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "footprints") (type "KiCad") (uri "C:/Users/Maxyft/Downloads/osciloscopio_digital_esp32-master (1)/kicad-libraries-legacy_kicad7/kicad-libraries-legacy_kicad7/footprints.pretty") (options "") (descr ""))
+	(lib (name "Espressif") (type "KiCad") (uri "C:/Users/Maxyft/Downloads/osciloscopio_digital_esp32-master (1)/kicad-libraries-legacy_kicad7/kicad-libraries-legacy_kicad7/footprints/Espressif.pretty") (options "") (descr ""))
+)
