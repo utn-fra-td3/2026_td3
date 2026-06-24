@@ -10394,7 +10394,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 25.654 40.64 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10968,7 +10968,7 @@
 				)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 101.6 24.13 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11387,7 +11387,7 @@
 				)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 130.81 24.13 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12136,7 +12136,7 @@
 				)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 247.65 87.63 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12313,7 +12313,7 @@
 				)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 247.65 31.75 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12570,7 +12570,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 165.354 96.52 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13956,7 +13956,7 @@
 				)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 204.47 104.902 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14567,7 +14567,7 @@
 				)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 204.47 49.022 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -15471,7 +15471,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 165.354 40.64 0)
 			(show_name no)
 			(do_not_autoplace no)
