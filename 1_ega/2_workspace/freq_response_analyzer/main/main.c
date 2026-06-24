@@ -12,8 +12,7 @@ QueueHandle_t queue_menu_events = NULL;
 QueueHandle_t queue_sweep_cmd = NULL;
 QueueHandle_t queue_display = NULL;
 QueueHandle_t queue_nvs_cmd = NULL;
-QueueHandle_t queue_uart_rx = NULL;
-SemaphoreHandle_t mutex_uart_tx = NULL;
+QueueHandle_t queue_uart_tx = NULL;
 SemaphoreHandle_t sem_btn_press = NULL;
 
 void app_main(void)
@@ -27,9 +26,8 @@ void app_main(void)
     queue_display = xQueueCreate(QUEUE_DISPLAY_LEN, sizeof(display_msg_t));
     configASSERT(queue_display != NULL);
     // queue_nvs_cmd = xQueueCreate(QUEUE_NVS_CMD_LEN, sizeof(nvs_cmd_msg_t));
-    // queue_uart_rx = xQueueCreate(QUEUE_UART_RX_LEN, sizeof(uint8_t));
-    mutex_uart_tx = xSemaphoreCreateMutex();
-    configASSERT(mutex_uart_tx != NULL);
+    queue_uart_tx = xQueueCreate(QUEUE_UART_TX_LEN, sizeof(uart_tx_msg_t));
+    configASSERT(queue_uart_tx != NULL);
     // sem_btn_press = xSemaphoreCreateBinary();
 
     // --- Arranque de tareas ---

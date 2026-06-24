@@ -1,11 +1,6 @@
 // --- Includes ---
 #include "menu_config.h"
 #include "esp_log.h"
-#include "driver/uart.h"
-#include <stdio.h>
-
-// --- Defines privados ---
-#define UART_PORT_NUM UART_NUM_0
 
 // --- Tipos privados ---
 typedef struct
@@ -35,7 +30,6 @@ static uint32_t *campo[] = {
 
 // --- Prototipos privados ---
 static void procesar_config_set(sweep_param_e param, uint32_t value);
-static void enviar_uart(const char *msg, size_t len);
 
 // --- Funciones ---
 
@@ -59,16 +53,24 @@ void task_menu_config(void *pvParameters)
 
 static void procesar_config_set(sweep_param_e param, uint32_t value)
 {
+    uart_tx_msg_t tx;
+
     if (value < MIN[param] || value > MAX[param])
     {
-        char buf[64];
-        int  len = snprintf(buf, sizeof(buf), "ERROR valor fuera de rango: param=%d value=%lu\n", param, value);
         ESP_LOGW(TAG, "valor fuera de rango: param=%d value=%lu, se mantiene el valor anterior", param, value);
-        enviar_uart(buf, len);
+        tx.type = UART_TX_CONFIG_ERROR;
     }
     else
     {
         *campo[param] = value;
+        tx.type = UART_TX_CONFIG_ACK;
+    }
+
+    tx.param = param;
+    tx.value = *campo[param];
+    if (xQueueSend(queue_uart_tx, &tx, 0) != pdTRUE)
+    {
+        ESP_LOGW(TAG, "queue_uart_tx llena, aviso no enviado");
     }
 
     // Siempre se reenvia el valor vigente (nuevo si fue valido, el anterior si no),
@@ -81,20 +83,5 @@ static void procesar_config_set(sweep_param_e param, uint32_t value)
     if (xQueueSend(queue_display, &msg, 0) != pdTRUE)
     {
         ESP_LOGW(TAG, "queue_display llena, valor no mostrado");
-    }
-}
-
-// TX por UART protegida con mutex_uart_tx: usada para avisar errores ahora,
-// y reutilizable mas adelante para responder consultas (ej. "dame toda la config").
-static void enviar_uart(const char *msg, size_t len)
-{
-    if (xSemaphoreTake(mutex_uart_tx, pdMS_TO_TICKS(100)) == pdTRUE)
-    {
-        uart_write_bytes(UART_PORT_NUM, msg, len);
-        xSemaphoreGive(mutex_uart_tx);
-    }
-    else
-    {
-        ESP_LOGW(TAG, "no se pudo tomar mutex_uart_tx, mensaje no enviado");
     }
 }

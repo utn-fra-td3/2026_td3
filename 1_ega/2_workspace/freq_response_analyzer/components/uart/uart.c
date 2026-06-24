@@ -25,10 +25,10 @@ typedef struct {
 static const char *TAG = "uart";
 
 static const comando_param_t TABLA_PARAMS[] = {
-    {"FREC_INICIO", SWEEP_PARAM_FREC_INICIO},
-    {"FREC_FINAL",  SWEEP_PARAM_FREC_FINAL},
-    {"PUNTOS",      SWEEP_PARAM_PUNTOS},
-    {"TIEMPO",      SWEEP_PARAM_TIEMPO},
+    {"frec_inicio", SWEEP_PARAM_FREC_INICIO},
+    {"frec_final",  SWEEP_PARAM_FREC_FINAL},
+    {"puntos",      SWEEP_PARAM_PUNTOS},
+    {"tiempo",      SWEEP_PARAM_TIEMPO},
 };
 #define CANT_PARAMS (sizeof(TABLA_PARAMS) / sizeof(TABLA_PARAMS[0]))
 
@@ -37,6 +37,8 @@ static void uart_init(void);
 static void procesar_comando(const char *cmd);
 static void procesar_set(const char *nombre_param, uint32_t value);
 static void enviar_uart(const char *msg, size_t len);
+static void procesar_queue_uart_tx(void);
+static void formatear_uart_tx(const uart_tx_msg_t *tx, char *buf, size_t buf_len, int *len);
 
 // --- Funciones ---
 
@@ -52,22 +54,25 @@ void task_uart(void *pvParameters)
     {
         int byte_leido = uart_read_bytes(UART_PORT_NUM, &rx_byte, 1, pdMS_TO_TICKS(100));
 
-        if (byte_leido <= 0)
-            continue;       // no se recibió ningún byte, seguir esperando
-
-        if (rx_byte == '\n')
+        if (byte_leido > 0)
         {
-            if (cmd_len == 0)
-                continue;   // línea vacía, ignorar
+            if (rx_byte == '\r' || rx_byte == '\n')
+            {
+                if (cmd_len > 0) // linea vacia, ignorar
+                {
+                    cmd_buf[cmd_len] = '\0';
+                    ESP_LOGD(TAG, "comando recibido: \"%s\"", cmd_buf);
+                    procesar_comando(cmd_buf);
+                    cmd_len = 0;
+                }
+            }
+            else if (cmd_len < UART_RX_BUF_SIZE - 1)
+            {
+                cmd_buf[cmd_len++] = (char)rx_byte;
+            }
+        }
 
-            cmd_buf[cmd_len] = '\0';
-            procesar_comando(cmd_buf);
-            cmd_len = 0;
-        }
-        else if (cmd_len < UART_RX_BUF_SIZE - 1)
-        {
-            cmd_buf[cmd_len++] = (char)rx_byte;
-        }
+        procesar_queue_uart_tx();
     }
 }
 
@@ -96,7 +101,7 @@ static void procesar_comando(const char *cmd)
     char     buf[64];
     int      len;
 
-    if (sscanf(cmd, "SET %15s %lu", nombre_param, &value) == 2)
+    if (sscanf(cmd, "set %15s %lu", nombre_param, &value) == 2)
     {
         procesar_set(nombre_param, value);
         return;
@@ -132,16 +137,39 @@ static void procesar_set(const char *nombre_param, uint32_t value)
     enviar_uart(buf, len);
 }
 
-// TX por UART protegida con mutex_uart_tx (compartida con task_menu_config).
 static void enviar_uart(const char *msg, size_t len)
 {
-    if (xSemaphoreTake(mutex_uart_tx, pdMS_TO_TICKS(100)) == pdTRUE)
+    uart_write_bytes(UART_PORT_NUM, msg, len);
+}
+
+static void procesar_queue_uart_tx(void)
+{
+    uart_tx_msg_t tx;
+    char          buf[64];
+    int           len;
+
+    while (xQueueReceive(queue_uart_tx, &tx, 0) == pdTRUE)
     {
-        uart_write_bytes(UART_PORT_NUM, msg, len);
-        xSemaphoreGive(mutex_uart_tx);
+        formatear_uart_tx(&tx, buf, sizeof(buf), &len);
+        enviar_uart(buf, len);
     }
-    else
+}
+
+static void formatear_uart_tx(const uart_tx_msg_t *tx, char *buf, size_t buf_len, int *len)
+{
+    switch (tx->type)
     {
-        ESP_LOGW(TAG, "no se pudo tomar mutex_uart_tx, mensaje no enviado");
+    case UART_TX_CONFIG_ERROR:
+        *len = snprintf(buf, buf_len, "ERROR valor fuera de rango: param=%d value=%lu\n", tx->param, tx->value);
+        break;
+    case UART_TX_CONFIG_ACK:
+        *len = snprintf(buf, buf_len, "ACK param=%d value=%lu\n", tx->param, tx->value);
+        break;
+    case UART_TX_SWEEP_POINT:
+        *len = snprintf(buf, buf_len, "POINT freq=%lu db=%.2f\n", tx->freq_hz, tx->db);
+        break;
+    default:
+        *len = 0;
+        break;
     }
 }
