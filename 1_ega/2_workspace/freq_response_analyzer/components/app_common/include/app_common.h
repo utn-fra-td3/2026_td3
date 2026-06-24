@@ -44,7 +44,8 @@ typedef enum {
 typedef enum {
     DISPLAY_MSG_CONFIG_VALUE,      // valor de configuracion ya validado por task_menu_config, listo para mostrar
     DISPLAY_MSG_SWEEP_START_OK,    // configuracion de conjunto valida, pasar a la pantalla de barrido
-    DISPLAY_MSG_SWEEP_START_ERROR  // configuracion de conjunto invalida, mostrar popup con el motivo
+    DISPLAY_MSG_SWEEP_START_ERROR, // configuracion de conjunto invalida, mostrar popup con el motivo
+    DISPLAY_MSG_SWEEP_POINT        // punto medido del barrido (freq_hz + db), task_sweep
 } display_msg_type_e;
 
 typedef enum {
@@ -72,9 +73,11 @@ typedef struct {
 
 typedef struct {
     display_msg_type_e   type;
-    sweep_param_e         param;  // valido para DISPLAY_MSG_CONFIG_VALUE
-    uint32_t              value;  // valido para DISPLAY_MSG_CONFIG_VALUE; unidad base segun param
-    sweep_start_result_e  motivo; // valido para DISPLAY_MSG_SWEEP_START_ERROR
+    sweep_param_e         param;   // valido para DISPLAY_MSG_CONFIG_VALUE
+    uint32_t              value;   // valido para DISPLAY_MSG_CONFIG_VALUE; unidad base segun param
+    sweep_start_result_e  motivo;  // valido para DISPLAY_MSG_SWEEP_START_ERROR
+    uint32_t              freq_hz; // valido para DISPLAY_MSG_SWEEP_POINT
+    float                 db;      // valido para DISPLAY_MSG_SWEEP_POINT
 } display_msg_t;
 
 typedef struct {

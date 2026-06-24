@@ -361,7 +361,7 @@ void ui_scrconfig_screen_init(void)
     lv_obj_set_x(ui_lblvalue4, -5);
     lv_obj_set_y(ui_lblvalue4, 0);
     lv_obj_set_align(ui_lblvalue4, LV_ALIGN_RIGHT_MID);
-    lv_label_set_text(ui_lblvalue4, "25 ms");
+    lv_label_set_text(ui_lblvalue4, "30 ms");
     lv_obj_add_flag(ui_lblvalue4, LV_OBJ_FLAG_FLOATING);     /// Flags
     lv_obj_set_style_text_color(ui_lblvalue4, lv_color_hex(0xEAF2FA), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lblvalue4, 255, LV_PART_MAIN | LV_STATE_DEFAULT);

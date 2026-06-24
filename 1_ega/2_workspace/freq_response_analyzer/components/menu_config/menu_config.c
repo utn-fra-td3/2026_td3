@@ -2,6 +2,9 @@
 #include "menu_config.h"
 #include "esp_log.h"
 
+// --- Defines privados ---
+#define SWEEP_TIEMPO_TICK_MS 10 // resolucion de vTaskDelay con CONFIG_FREERTOS_HZ=100
+
 // --- Variables privadas ---
 static const char *TAG = "menu_config";
 
@@ -9,11 +12,11 @@ static sweep_config_t config = {
     .frec_inicio = 10,
     .frec_final = 100000,
     .puntos = 200,
-    .tiempo = 25,
+    .tiempo = 30,
 };
 
 static const uint32_t MIN[] = {10, 11, 2, 1};
-static const uint32_t MAX[] = {99999, 100000, 512, 100};
+static const uint32_t MAX[] = {99999, 100000, 512, 1000};
 
 static uint32_t *campo[] = {
     &config.frec_inicio, &config.frec_final,
@@ -55,6 +58,11 @@ static void procesar_config_set(sweep_param_e param, uint32_t value)
     }
     else
     {
+        if (param == SWEEP_PARAM_TIEMPO && value % SWEEP_TIEMPO_TICK_MS != 0)
+        {
+            value = ((value + SWEEP_TIEMPO_TICK_MS - 1) / SWEEP_TIEMPO_TICK_MS) * SWEEP_TIEMPO_TICK_MS;
+            ESP_LOGW(TAG, "tiempo de asentamiento redondeado a multiplo de tick: %lu ms", value);
+        }
         *campo[param] = value;
     }
 

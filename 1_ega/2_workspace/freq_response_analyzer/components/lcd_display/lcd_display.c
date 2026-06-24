@@ -207,6 +207,9 @@ void task_lcd_display(void *pvParameters)
             case DISPLAY_MSG_SWEEP_START_ERROR:
                 mostrar_popup_error(msg.motivo);
                 break;
+            case DISPLAY_MSG_SWEEP_POINT:
+                ESP_LOGI(TAG, "punto recibido: %lu Hz, %.2f dB", msg.freq_hz, msg.db);
+                break;
             }
             lvgl_port_unlock();
         }

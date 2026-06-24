@@ -36,7 +36,7 @@ void app_main(void)
     // xTaskCreate(task_user_controls, "task_user_controls", TASK_USER_CONTROLS_STACK, NULL, TASK_USER_CONTROLS_PRIORITY, NULL);
     xTaskCreate(task_menu_config, "task_menu_config", TASK_MENU_CONFIG_STACK, NULL, TASK_MENU_CONFIG_PRIORITY, NULL);
     xTaskCreate(task_lcd_display, "task_lcd_display", TASK_LCD_DISPLAY_STACK, NULL, TASK_LCD_DISPLAY_PRIORITY, NULL);
-    // xTaskCreate(task_sweep, "task_sweep", TASK_SWEEP_STACK, NULL, TASK_SWEEP_PRIORITY, NULL);
+    xTaskCreate(task_sweep, "task_sweep", TASK_SWEEP_STACK, NULL, TASK_SWEEP_PRIORITY, NULL);
     xTaskCreate(task_uart, "task_uart", TASK_UART_STACK, NULL, TASK_UART_PRIORITY, NULL);
     // xTaskCreate(task_nvs, "task_nvs", TASK_NVS_STACK, NULL, TASK_NVS_PRIORITY, NULL);
 }
