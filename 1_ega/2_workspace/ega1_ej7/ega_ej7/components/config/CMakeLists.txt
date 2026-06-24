@@ -1,2 +1,5 @@
-idf_component_register(SRCS "config.c"
-                    INCLUDE_DIRS "include")
+idf_component_register(
+    SRCS "config.c"
+    INCLUDE_DIRS "include"
+    REQUIRES freertos log
+)

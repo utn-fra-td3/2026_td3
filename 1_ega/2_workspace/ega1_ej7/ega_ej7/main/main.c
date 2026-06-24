@@ -5,8 +5,9 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "driver/gpio.h"
+#include "config.h"
+#include "uart_comm.h"
 
-static const char *TAG = "main";
 
 #define SW_RUNOFF 0
 
@@ -32,21 +33,27 @@ void task_runoff(void *param)
     {
         if (xSemaphoreTake(sem_runoff, portMAX_DELAY) == pdTRUE)
         {
-
-            vTaskDelay(pdMS_TO_TICKS(50)); // antirrebote 
+            vTaskDelay(pdMS_TO_TICKS(50)); // antirebote
 
             if (gpio_get_level(SW_RUNOFF) == 0)
             {
-                med_state = !med_state;
+                config_t config_leida;
+                intro_t dato_intro;
 
-                if (med_state)
+                if (xQueuePeek(config, &config_leida, pdMS_TO_TICKS(100)) == pdTRUE) 
                 {
-                    ESP_LOGI(TAG, "RUN");
+                    if (config_leida.estado == med_stateoff_config)
+                    {
+                        dato_intro = 1;
+                    }
+                    else
+                    {
+                        dato_intro = 2;
+                    }
+
+                    xQueueSend(intro, &dato_intro, portMAX_DELAY);
                 }
-                else
-                {
-                    ESP_LOGI(TAG, "OFF");
-                }
+
                 while (gpio_get_level(SW_RUNOFF) == 0)
                 {
                     vTaskDelay(pdMS_TO_TICKS(10));
@@ -58,11 +65,14 @@ void task_runoff(void *param)
 
 void app_main(void)
 {
+    config_init();
+    uart_comm_init();
+
     sem_runoff = xSemaphoreCreateBinary();
 
     if (sem_runoff == NULL)
     {
-        ESP_LOGE(TAG, "No se pudo crear el semaforo RUN/OFF");
+        // No se pudo crear el semáforo
         return;
     }
 
