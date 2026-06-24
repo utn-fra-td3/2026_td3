@@ -38,7 +38,7 @@ static lv_disp_t *disp_handle = NULL;
 static i2c_master_bus_handle_t i2c_bus = NULL;
 static esp_lcd_touch_handle_t tp_handle = NULL;
 
-static const char *UNIT_CONFIG[] = {"Hz", "Hz", "pts", "s"};
+static const char *UNIT_CONFIG[] = {"Hz", "Hz", "pts", "ms"};
 
 static lv_obj_t **val_labels_config[] = {
     &ui_lblvalue1, &ui_lblvalue2,
@@ -202,7 +202,11 @@ static void mostrar_config_value(sweep_param_e param, uint32_t value)
     char tmp[16];
     bool es_frecuencia = (param == SWEEP_PARAM_FREC_INICIO || param == SWEEP_PARAM_FREC_FINAL);
     if (es_frecuencia && value >= 1000)
-        snprintf(tmp, sizeof(tmp), "%lu kHz", value / 1000);
+    {
+        uint32_t khz_entero  = value / 1000;
+        uint32_t khz_decimal = (value % 1000) / 100;
+        snprintf(tmp, sizeof(tmp), "%lu.%lu kHz", khz_entero, khz_decimal);
+    }
     else
         snprintf(tmp, sizeof(tmp), "%lu %s", value, UNIT_CONFIG[param]);
     lv_label_set_text(*val_labels_config[param], tmp);
