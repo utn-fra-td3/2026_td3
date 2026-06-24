@@ -6886,12 +6886,451 @@
             "saved_objtypeKey": "PANEL"
           },
           {
-            "guid": "GUID67046194-292229S1985171",
+            "guid": "GUID3431373-469366S655175",
+            "children": [
+              {
+                "guid": "GUID67046194-292229S1985171",
+                "properties": [
+                  {
+                    "nid": 10,
+                    "strtype": "OBJECT/Name",
+                    "strval": "swchart",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 20,
+                    "strtype": "OBJECT/Layout",
+                    "InheritedType": 1
+                  },
+                  {
+                    "Flow": 0,
+                    "Wrap": false,
+                    "Reversed": false,
+                    "MainAlignment": 0,
+                    "CrossAlignment": 0,
+                    "TrackAlignment": 0,
+                    "LayoutType": 0,
+                    "nid": 30,
+                    "strtype": "OBJECT/Layout_type",
+                    "strval": "No_layout",
+                    "InheritedType": 13
+                  },
+                  {
+                    "nid": 40,
+                    "strtype": "OBJECT/Transform",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 50,
+                    "flags": 17,
+                    "strtype": "OBJECT/Position",
+                    "intarray": [
+                      -12,
+                      5
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 60,
+                    "flags": 17,
+                    "strtype": "OBJECT/Size",
+                    "intarray": [
+                      285,
+                      140
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 70,
+                    "strtype": "OBJECT/Align",
+                    "strval": "TOP_RIGHT",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 90,
+                    "flags": 1048576,
+                    "strtype": "OBJECT/Flags",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 180,
+                    "strtype": "OBJECT/Overflow_visible",
+                    "strval": "True",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 225,
+                    "flags": 1048576,
+                    "strtype": "OBJECT/Scrolling",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 230,
+                    "strtype": "OBJECT/Scrollable",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 300,
+                    "strtype": "OBJECT/Scrollbar_mode",
+                    "strval": "AUTO",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 310,
+                    "strtype": "OBJECT/Scroll_direction",
+                    "strval": "ALL",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 314,
+                    "strtype": "OBJECT/Scroll_snap_x",
+                    "strval": "NONE",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 315,
+                    "strtype": "OBJECT/Scroll_snap_y",
+                    "strval": "NONE",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 320,
+                    "flags": 1048576,
+                    "strtype": "OBJECT/States",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 1010,
+                    "flags": 1048576,
+                    "strtype": "CHART/Chart",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 1020,
+                    "strtype": "CHART/Chart_type",
+                    "strval": "LINE",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 1030,
+                    "strtype": "CHART/Number_of_points",
+                    "integer": 200,
+                    "InheritedType": 6
+                  },
+                  {
+                    "nid": 1040,
+                    "flags": 16,
+                    "strtype": "CHART/Division_lines",
+                    "intarray": [
+                      5,
+                      5
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 1050,
+                    "flags": 16,
+                    "strtype": "CHART/Zoom",
+                    "intarray": [
+                      256,
+                      256
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 1060,
+                    "strtype": "CHART/X_Axis",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 1070,
+                    "flags": 16,
+                    "strtype": "CHART/XMajor",
+                    "intarray": [
+                      10,
+                      5
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 1080,
+                    "flags": 16,
+                    "strtype": "CHART/XMinor",
+                    "intarray": [
+                      5,
+                      2
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 1090,
+                    "strtype": "CHART/Labels_on_X_axis",
+                    "strval": "True",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 1100,
+                    "strtype": "CHART/Font_size_on_X_axis",
+                    "integer": 50,
+                    "InheritedType": 6
+                  },
+                  {
+                    "nid": 1110,
+                    "flags": 1048576,
+                    "strtype": "CHART/Primary_Y_Axis",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 1120,
+                    "flags": 16,
+                    "strtype": "CHART/Primary_Y_range",
+                    "intarray": [
+                      -80,
+                      10
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 1130,
+                    "flags": 16,
+                    "strtype": "CHART/PrimaryYMajor",
+                    "intarray": [
+                      0,
+                      5
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 1140,
+                    "flags": 16,
+                    "strtype": "CHART/PrimaryYMinor",
+                    "intarray": [
+                      0,
+                      1
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 1150,
+                    "strtype": "CHART/Labels_on_Primary_Y_axis",
+                    "strval": "True",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 1160,
+                    "strtype": "CHART/Font_size_on_Primary_Y_axis",
+                    "integer": 50,
+                    "InheritedType": 6
+                  },
+                  {
+                    "nid": 1170,
+                    "flags": 1048576,
+                    "strtype": "CHART/Secondary_Y_Axis",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 1180,
+                    "flags": 16,
+                    "strtype": "CHART/Secondary_Y_range",
+                    "intarray": [
+                      -80,
+                      10
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 1190,
+                    "flags": 16,
+                    "strtype": "CHART/SecondaryYMajor",
+                    "intarray": [
+                      10,
+                      5
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 1200,
+                    "flags": 16,
+                    "strtype": "CHART/SecondaryYMinor",
+                    "intarray": [
+                      5,
+                      2
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 1210,
+                    "strtype": "CHART/Labels_on_Secondary_Y_axis",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 1220,
+                    "strtype": "CHART/Font_size_on_Secondary_Y_axis",
+                    "integer": 25,
+                    "InheritedType": 6
+                  },
+                  {
+                    "nid": 1230,
+                    "flags": 1048576,
+                    "strtype": "CHART/Chart_data",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 1240,
+                    "strtype": "CHART/ChartData",
+                    "strval": "[]",
+                    "InheritedType": 12
+                  },
+                  {
+                    "part": "lv.PART.MAIN",
+                    "childs": [
+                      {
+                        "nid": 10000,
+                        "strtype": "_style/StyleState",
+                        "strval": "DEFAULT",
+                        "childs": [
+                          {
+                            "nid": 10510,
+                            "strtype": "_style/Bg_Radius",
+                            "InheritedType": 6
+                          },
+                          {
+                            "nid": 10520,
+                            "flags": 4096,
+                            "strtype": "_style/Bg_Color",
+                            "intarray": [
+                              8,
+                              20,
+                              34,
+                              255
+                            ],
+                            "InheritedType": 7
+                          },
+                          {
+                            "nid": 10720,
+                            "strtype": "_style/Border width",
+                            "InheritedType": 6
+                          },
+                          {
+                            "nid": 10210,
+                            "flags": 4096,
+                            "strtype": "_style/Line_Color",
+                            "intarray": [
+                              28,
+                              58,
+                              90,
+                              180
+                            ],
+                            "InheritedType": 7
+                          },
+                          {
+                            "nid": 10220,
+                            "strtype": "_style/Line_Width",
+                            "integer": 1,
+                            "InheritedType": 6
+                          }
+                        ],
+                        "InheritedType": 1
+                      }
+                    ],
+                    "nid": 1250,
+                    "strtype": "CHART/Style_bg",
+                    "strval": "lv.PART.MAIN, Rectangle, Line, Pad, Transform",
+                    "InheritedType": 11
+                  },
+                  {
+                    "part": "lv.PART.SCROLLBAR",
+                    "childs": [],
+                    "nid": 1260,
+                    "strtype": "CHART/Style_scrollbar",
+                    "strval": "lv.PART.SCROLLBAR, Rectangle, Pad",
+                    "InheritedType": 11
+                  },
+                  {
+                    "part": "lv.PART.ITEMS",
+                    "childs": [
+                      {
+                        "nid": 10000,
+                        "strtype": "_style/StyleState",
+                        "strval": "DEFAULT",
+                        "childs": [
+                          {
+                            "nid": 10220,
+                            "strtype": "_style/Line_Width",
+                            "integer": 2,
+                            "InheritedType": 6
+                          }
+                        ],
+                        "InheritedType": 1
+                      }
+                    ],
+                    "nid": 1270,
+                    "strtype": "CHART/Style_items",
+                    "strval": "lv.PART.ITEMS, Line, Pad",
+                    "InheritedType": 11
+                  },
+                  {
+                    "part": "lv.PART.INDICATOR",
+                    "childs": [
+                      {
+                        "nid": 10000,
+                        "strtype": "_style/StyleState",
+                        "strval": "DEFAULT",
+                        "childs": [
+                          {
+                            "nid": 11310,
+                            "strtype": "_style/Size_size",
+                            "InheritedType": 6
+                          }
+                        ],
+                        "InheritedType": 1
+                      }
+                    ],
+                    "nid": 1280,
+                    "strtype": "CHART/Style_indicator",
+                    "strval": "lv.PART.INDICATOR, Rectangle, Pad, Size",
+                    "InheritedType": 11
+                  },
+                  {
+                    "part": "lv.PART.TICKS",
+                    "childs": [
+                      {
+                        "nid": 10000,
+                        "strtype": "_style/StyleState",
+                        "strval": "DEFAULT",
+                        "childs": [
+                          {
+                            "nid": 10410,
+                            "flags": 4096,
+                            "strtype": "_style/Text_Color",
+                            "intarray": [
+                              234,
+                              242,
+                              250,
+                              255
+                            ],
+                            "InheritedType": 7
+                          }
+                        ],
+                        "InheritedType": 1
+                      }
+                    ],
+                    "nid": 1290,
+                    "strtype": "CHART/Style_ticks",
+                    "strval": "lv.PART.TICKS, Line, Text",
+                    "InheritedType": 11
+                  }
+                ],
+                "saved_objtypeKey": "CHART"
+              }
+            ],
             "properties": [
               {
                 "nid": 10,
                 "strtype": "OBJECT/Name",
-                "strval": "swchart",
+                "strval": "Panel1",
                 "InheritedType": 10
               },
               {
@@ -6944,16 +7383,15 @@
                 "InheritedType": 3
               },
               {
+                "nid": 75,
+                "strtype": "OBJECT/Extend_click_area",
+                "InheritedType": 6
+              },
+              {
                 "nid": 90,
                 "flags": 1048576,
                 "strtype": "OBJECT/Flags",
                 "InheritedType": 1
-              },
-              {
-                "nid": 180,
-                "strtype": "OBJECT/Overflow_visible",
-                "strval": "True",
-                "InheritedType": 2
               },
               {
                 "nid": 225,
@@ -6998,189 +7436,6 @@
                 "InheritedType": 1
               },
               {
-                "nid": 1010,
-                "flags": 1048576,
-                "strtype": "CHART/Chart",
-                "InheritedType": 1
-              },
-              {
-                "nid": 1020,
-                "strtype": "CHART/Chart_type",
-                "strval": "LINE",
-                "InheritedType": 3
-              },
-              {
-                "nid": 1030,
-                "strtype": "CHART/Number_of_points",
-                "integer": 200,
-                "InheritedType": 6
-              },
-              {
-                "nid": 1040,
-                "flags": 16,
-                "strtype": "CHART/Division_lines",
-                "intarray": [
-                  5,
-                  5
-                ],
-                "InheritedType": 7
-              },
-              {
-                "nid": 1050,
-                "flags": 16,
-                "strtype": "CHART/Zoom",
-                "intarray": [
-                  256,
-                  256
-                ],
-                "InheritedType": 7
-              },
-              {
-                "nid": 1060,
-                "flags": 1048576,
-                "strtype": "CHART/X_Axis",
-                "InheritedType": 1
-              },
-              {
-                "nid": 1070,
-                "flags": 16,
-                "strtype": "CHART/XMajor",
-                "intarray": [
-                  10,
-                  5
-                ],
-                "InheritedType": 7
-              },
-              {
-                "nid": 1080,
-                "flags": 16,
-                "strtype": "CHART/XMinor",
-                "intarray": [
-                  5,
-                  2
-                ],
-                "InheritedType": 7
-              },
-              {
-                "nid": 1090,
-                "strtype": "CHART/Labels_on_X_axis",
-                "strval": "False",
-                "InheritedType": 2
-              },
-              {
-                "nid": 1100,
-                "strtype": "CHART/Font_size_on_X_axis",
-                "integer": 50,
-                "InheritedType": 6
-              },
-              {
-                "nid": 1110,
-                "flags": 1048576,
-                "strtype": "CHART/Primary_Y_Axis",
-                "InheritedType": 1
-              },
-              {
-                "nid": 1120,
-                "flags": 16,
-                "strtype": "CHART/Primary_Y_range",
-                "intarray": [
-                  -8000,
-                  0
-                ],
-                "InheritedType": 7
-              },
-              {
-                "nid": 1130,
-                "flags": 16,
-                "strtype": "CHART/PrimaryYMajor",
-                "intarray": [
-                  0,
-                  5
-                ],
-                "InheritedType": 7
-              },
-              {
-                "nid": 1140,
-                "flags": 16,
-                "strtype": "CHART/PrimaryYMinor",
-                "intarray": [
-                  0,
-                  1
-                ],
-                "InheritedType": 7
-              },
-              {
-                "nid": 1150,
-                "strtype": "CHART/Labels_on_Primary_Y_axis",
-                "strval": "True",
-                "InheritedType": 2
-              },
-              {
-                "nid": 1160,
-                "strtype": "CHART/Font_size_on_Primary_Y_axis",
-                "integer": 50,
-                "InheritedType": 6
-              },
-              {
-                "nid": 1170,
-                "flags": 1048576,
-                "strtype": "CHART/Secondary_Y_Axis",
-                "InheritedType": 1
-              },
-              {
-                "nid": 1180,
-                "flags": 16,
-                "strtype": "CHART/Secondary_Y_range",
-                "intarray": [
-                  -8000,
-                  0
-                ],
-                "InheritedType": 7
-              },
-              {
-                "nid": 1190,
-                "flags": 16,
-                "strtype": "CHART/SecondaryYMajor",
-                "intarray": [
-                  10,
-                  5
-                ],
-                "InheritedType": 7
-              },
-              {
-                "nid": 1200,
-                "flags": 16,
-                "strtype": "CHART/SecondaryYMinor",
-                "intarray": [
-                  5,
-                  2
-                ],
-                "InheritedType": 7
-              },
-              {
-                "nid": 1210,
-                "strtype": "CHART/Labels_on_Secondary_Y_axis",
-                "strval": "False",
-                "InheritedType": 2
-              },
-              {
-                "nid": 1220,
-                "strtype": "CHART/Font_size_on_Secondary_Y_axis",
-                "integer": 25,
-                "InheritedType": 6
-              },
-              {
-                "nid": 1230,
-                "strtype": "CHART/Chart_data",
-                "InheritedType": 1
-              },
-              {
-                "nid": 1240,
-                "strtype": "CHART/ChartData",
-                "strval": "[]",
-                "InheritedType": 12
-              },
-              {
                 "part": "lv.PART.MAIN",
                 "childs": [
                   {
@@ -7200,8 +7455,8 @@
                         "intarray": [
                           8,
                           20,
-                          34,
-                          255
+                          32,
+                          0
                         ],
                         "InheritedType": 7
                       },
@@ -7211,32 +7466,14 @@
                         "InheritedType": 6
                       },
                       {
-                        "nid": 10210,
-                        "flags": 4096,
-                        "strtype": "_style/Line_Color",
-                        "intarray": [
-                          28,
-                          58,
-                          90,
-                          180
-                        ],
-                        "InheritedType": 7
-                      },
-                      {
-                        "nid": 10220,
-                        "strtype": "_style/Line_Width",
-                        "integer": 1,
-                        "InheritedType": 6
-                      },
-                      {
                         "nid": 11110,
                         "flags": 4096,
                         "strtype": "_style/Padding",
                         "intarray": [
-                          32,
-                          6,
-                          6,
-                          20
+                          0,
+                          0,
+                          0,
+                          0
                         ],
                         "InheritedType": 7
                       }
@@ -7244,74 +7481,21 @@
                     "InheritedType": 1
                   }
                 ],
-                "nid": 1250,
-                "strtype": "CHART/Style_bg",
-                "strval": "lv.PART.MAIN, Rectangle, Line, Pad, Transform",
+                "nid": 1010,
+                "strtype": "PANEL/Style_main",
+                "strval": "lv.PART.MAIN, Rectangle, Pad, Text, Transform",
                 "InheritedType": 11
               },
               {
                 "part": "lv.PART.SCROLLBAR",
                 "childs": [],
-                "nid": 1260,
-                "strtype": "CHART/Style_scrollbar",
+                "nid": 1020,
+                "strtype": "PANEL/Style_scrollbar",
                 "strval": "lv.PART.SCROLLBAR, Rectangle, Pad",
-                "InheritedType": 11
-              },
-              {
-                "part": "lv.PART.ITEMS",
-                "childs": [
-                  {
-                    "nid": 10000,
-                    "strtype": "_style/StyleState",
-                    "strval": "DEFAULT",
-                    "childs": [
-                      {
-                        "nid": 10220,
-                        "strtype": "_style/Line_Width",
-                        "integer": 2,
-                        "InheritedType": 6
-                      }
-                    ],
-                    "InheritedType": 1
-                  }
-                ],
-                "nid": 1270,
-                "strtype": "CHART/Style_items",
-                "strval": "lv.PART.ITEMS, Line, Pad",
-                "InheritedType": 11
-              },
-              {
-                "part": "lv.PART.INDICATOR",
-                "childs": [
-                  {
-                    "nid": 10000,
-                    "strtype": "_style/StyleState",
-                    "strval": "DEFAULT",
-                    "childs": [
-                      {
-                        "nid": 11310,
-                        "strtype": "_style/Size_size",
-                        "InheritedType": 6
-                      }
-                    ],
-                    "InheritedType": 1
-                  }
-                ],
-                "nid": 1280,
-                "strtype": "CHART/Style_indicator",
-                "strval": "lv.PART.INDICATOR, Rectangle, Pad, Size",
-                "InheritedType": 11
-              },
-              {
-                "part": "lv.PART.TICKS",
-                "childs": [],
-                "nid": 1290,
-                "strtype": "CHART/Style_ticks",
-                "strval": "lv.PART.TICKS, Line, Text",
                 "InheritedType": 11
               }
             ],
-            "saved_objtypeKey": "CHART"
+            "saved_objtypeKey": "PANEL"
           },
           {
             "guid": "GUID85553629-292231S1335171",
@@ -9396,7 +9580,7 @@
     }
   ],
   "selected_theme": "Default",
-  "selected_screen": "GUID85762359-742835S2015157",
+  "selected_screen": "GUID24480837-652887S645171",
   "info": {
     "name": "freq_response_analyzer.spj",
     "depth": 1,
@@ -9425,7 +9609,7 @@
     "separate_screen_save": false,
     "hierarchy_state_save": false,
     "reverse_event_order": false,
-    "backup_cnt": 71,
+    "backup_cnt": 78,
     "autosave_cnt": 0,
     "group_color_cnt": 1,
     "imagebytearrayprefix": "",

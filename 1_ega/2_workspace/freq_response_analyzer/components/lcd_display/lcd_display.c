@@ -13,6 +13,7 @@
 #include "ui_scrconfig_kb.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <math.h>
 
 // --- Defines privados ---
 #define LCD_SCLK GPIO_NUM_39
@@ -29,6 +30,9 @@
 #define TOUCH_SCL GPIO_NUM_47
 #define TOUCH_INT GPIO_NUM_46
 
+#define SWCHART_XAXIS_TICKS 5 // cantidad de ticks mayores del eje X
+#define SWCHART_DB_PISO -80 // minimo real medible, el eje Y nunca se expande mas abajo de esto
+
 // --- Variables privadas ---
 static const char *TAG = "lcd_display";
 
@@ -37,16 +41,22 @@ static esp_lcd_panel_handle_t panel_handle = NULL;
 static lv_disp_t *disp_handle = NULL;
 static i2c_master_bus_handle_t i2c_bus = NULL;
 static esp_lcd_touch_handle_t tp_handle = NULL;
+static lv_chart_series_t *swchart_serie = NULL;
+static uint16_t swchart_idx = 0;
+static int32_t swchart_db_min = 0;
+static int32_t swchart_db_max = 0;
+static bool swchart_tiene_datos = false;
+static char swchart_xaxis_buf[SWCHART_XAXIS_TICKS][8];
+static const char *swchart_xaxis_txt_src[SWCHART_XAXIS_TICKS + 1];
 
 static const char *UNIT_CONFIG[] = {"Hz", "Hz", "pts", "ms"};
 
 static lv_obj_t **val_labels_config[] = {
     &ui_lblvalue1, &ui_lblvalue2,
-    &ui_lblvalue3, &ui_lblvalue4
-};
+    &ui_lblvalue3, &ui_lblvalue4};
 
 static const char *TEXTO_ERROR_SWEEP[] = {
-    "",                                                                // SWEEP_START_OK, no se usa
+    "", // SWEEP_START_OK, no se usa
     "Frecuencia inicial fuera de rango (10 - 99999 Hz)",
     "Frecuencia final fuera de rango (11 - 100000 Hz)",
     "La frecuencia inicial debe ser menor que la final",
@@ -60,6 +70,9 @@ static void lvgl_init(void);
 static void touch_init(void);
 static void mostrar_config_value(sweep_param_e param, uint32_t value);
 static void mostrar_popup_error(sweep_start_result_e motivo);
+static void swchart_actualizar_escala_frecuencia(uint32_t frec_inicio, uint32_t frec_final);
+static void swchart_reiniciar(uint32_t puntos);
+static void swchart_agregar_punto(float db);
 
 // --- Funciones ---
 
@@ -186,6 +199,8 @@ void task_lcd_display(void *pvParameters)
     configASSERT(lvgl_port_lock(portMAX_DELAY));
     ui_init();
     ui_scrconfig_kb_init();
+    swchart_serie = lv_chart_add_series(ui_swchart, lv_color_hex(0xF5D020), LV_CHART_AXIS_PRIMARY_Y);
+    animindicatorpulse_Animation(ui_swindicator, 0);
     lvgl_port_unlock();
 
     ESP_LOGI(TAG, "UI inicializada");
@@ -202,6 +217,8 @@ void task_lcd_display(void *pvParameters)
                 mostrar_config_value(msg.param, msg.value);
                 break;
             case DISPLAY_MSG_SWEEP_START_OK:
+                swchart_actualizar_escala_frecuencia(msg.frec_inicio, msg.frec_final);
+                swchart_reiniciar(msg.puntos);
                 lv_disp_load_scr(ui_scrsweep);
                 break;
             case DISPLAY_MSG_SWEEP_START_ERROR:
@@ -209,6 +226,7 @@ void task_lcd_display(void *pvParameters)
                 break;
             case DISPLAY_MSG_SWEEP_POINT:
                 ESP_LOGI(TAG, "punto recibido: %lu Hz, %.2f dB", msg.freq_hz, msg.db);
+                swchart_agregar_punto(msg.db);
                 break;
             }
             lvgl_port_unlock();
@@ -222,7 +240,7 @@ static void mostrar_config_value(sweep_param_e param, uint32_t value)
     bool es_frecuencia = (param == SWEEP_PARAM_FREC_INICIO || param == SWEEP_PARAM_FREC_FINAL);
     if (es_frecuencia && value >= 1000)
     {
-        uint32_t khz_entero  = value / 1000;
+        uint32_t khz_entero = value / 1000;
         uint32_t khz_decimal = (value % 1000) / 100;
         if (khz_decimal == 0)
             snprintf(tmp, sizeof(tmp), "%lu kHz", khz_entero);
@@ -239,4 +257,62 @@ static void mostrar_popup_error(sweep_start_result_e motivo)
     lv_label_set_text(ui_uicfgpopuplbl, TEXTO_ERROR_SWEEP[motivo]);
     lv_obj_remove_flag(ui_uicfgpopup, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(ui_uicfgpopup);
+}
+
+// paso logaritmico, igual al usado por task_sweep: f(i) = frec_inicio * (frec_final/frec_inicio)^(i/(ticks-1))
+static void swchart_actualizar_escala_frecuencia(uint32_t frec_inicio, uint32_t frec_final)
+{
+    for (int i = 0; i < SWCHART_XAXIS_TICKS; i++)
+    {
+        double exponente = (double)i / (double)(SWCHART_XAXIS_TICKS - 1);
+        double frec = frec_inicio * pow((double)frec_final / (double)frec_inicio, exponente);
+
+        if (frec >= 1000.0)
+            snprintf(swchart_xaxis_buf[i], sizeof(swchart_xaxis_buf[i]), "%.1fk", frec / 1000.0);
+        else
+            snprintf(swchart_xaxis_buf[i], sizeof(swchart_xaxis_buf[i]), "%lu", (uint32_t)(frec + 0.5));
+
+        swchart_xaxis_txt_src[i] = swchart_xaxis_buf[i];
+    }
+    swchart_xaxis_txt_src[SWCHART_XAXIS_TICKS] = NULL;
+
+    lv_scale_set_text_src(ui_swchart_Xaxis, swchart_xaxis_txt_src);
+}
+
+static void swchart_reiniciar(uint32_t puntos)
+{
+    lv_chart_set_point_count(ui_swchart, puntos);
+    lv_chart_set_all_value(ui_swchart, swchart_serie, LV_CHART_POINT_NONE);
+    swchart_idx = 0;
+    swchart_tiene_datos = false;
+}
+
+static void swchart_agregar_punto(float db)
+{
+    if (swchart_idx >= lv_chart_get_point_count(ui_swchart))
+    {
+        ESP_LOGW(TAG, "chart lleno, punto no graficado");
+        return;
+    }
+
+    int32_t valor = LV_MAX(lroundf(db), SWCHART_DB_PISO);
+
+    if (!swchart_tiene_datos)
+    {
+        swchart_db_min = valor - 1;
+        swchart_db_max = valor + 1;
+        swchart_tiene_datos = true;
+        lv_chart_set_axis_range(ui_swchart, LV_CHART_AXIS_PRIMARY_Y, swchart_db_min, swchart_db_max);
+        lv_scale_set_range(ui_swchart_Yaxis1, swchart_db_min, swchart_db_max);
+    }
+    else if (valor < swchart_db_min || valor > swchart_db_max)
+    {
+        swchart_db_min = LV_MAX(LV_MIN(swchart_db_min, valor), SWCHART_DB_PISO);
+        swchart_db_max = LV_MAX(swchart_db_max, valor);
+        lv_chart_set_axis_range(ui_swchart, LV_CHART_AXIS_PRIMARY_Y, swchart_db_min, swchart_db_max);
+        lv_scale_set_range(ui_swchart_Yaxis1, swchart_db_min, swchart_db_max);
+    }
+
+    lv_chart_set_value_by_id(ui_swchart, swchart_serie, swchart_idx, valor);
+    swchart_idx++;
 }

@@ -73,11 +73,14 @@ typedef struct {
 
 typedef struct {
     display_msg_type_e   type;
-    sweep_param_e         param;   // valido para DISPLAY_MSG_CONFIG_VALUE
-    uint32_t              value;   // valido para DISPLAY_MSG_CONFIG_VALUE; unidad base segun param
-    sweep_start_result_e  motivo;  // valido para DISPLAY_MSG_SWEEP_START_ERROR
-    uint32_t              freq_hz; // valido para DISPLAY_MSG_SWEEP_POINT
-    float                 db;      // valido para DISPLAY_MSG_SWEEP_POINT
+    sweep_param_e         param;       // valido para DISPLAY_MSG_CONFIG_VALUE
+    uint32_t              value;       // valido para DISPLAY_MSG_CONFIG_VALUE; unidad base segun param
+    sweep_start_result_e  motivo;      // valido para DISPLAY_MSG_SWEEP_START_ERROR
+    uint32_t              freq_hz;     // valido para DISPLAY_MSG_SWEEP_POINT
+    float                 db;          // valido para DISPLAY_MSG_SWEEP_POINT
+    uint32_t              frec_inicio; // valido para DISPLAY_MSG_SWEEP_START_OK
+    uint32_t              frec_final;  // valido para DISPLAY_MSG_SWEEP_START_OK
+    uint32_t              puntos;      // valido para DISPLAY_MSG_SWEEP_START_OK
 } display_msg_t;
 
 typedef struct {

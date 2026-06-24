@@ -119,7 +119,10 @@ static void procesar_sweep_start(void)
         if (xQueueSend(queue_sweep_cmd, &cmd, 0) != pdTRUE)
             ESP_LOGW(TAG, "queue_sweep_cmd llena, no se pudo iniciar el barrido");
 
-        msg.type = DISPLAY_MSG_SWEEP_START_OK;
+        msg.type        = DISPLAY_MSG_SWEEP_START_OK;
+        msg.frec_inicio = config.frec_inicio;
+        msg.frec_final  = config.frec_final;
+        msg.puntos      = config.puntos;
     }
     else
     {

@@ -98,14 +98,27 @@ static void ejecutar_barrido(const sweep_config_t *config)
     ESP_LOGI(TAG, "iniciando barrido: %lu Hz a %lu Hz, %lu puntos, asentamiento %lu ms", config->frec_inicio, config->frec_final, config->puntos, config->tiempo);
 
     uint32_t frec_anterior = 0;
+    float db_anterior = 0.0f;
     for (uint32_t i = 0; i < config->puntos; i++)
     {
         uint32_t frec_hz = calcular_frecuencia(config->frec_inicio, config->frec_final, config->puntos, i);
-        if (i > 0 && frec_hz == frec_anterior)
-            continue; // paso log redondeado a la misma frecuencia entera, no remedir
-        frec_anterior = frec_hz;
+        float db;
 
-        float db = medir_punto(frec_hz, config->tiempo);
+        if (i > 0 && frec_hz == frec_anterior)
+        {
+            db = db_anterior; // paso log redondeado a la misma frecuencia entera, no remedir
+        }
+        else
+        {
+            frec_anterior = frec_hz;
+            db = medir_punto(frec_hz, config->tiempo);
+            if (isinf(db))
+            {
+                ESP_LOGW(TAG, "vin sin resolucion en %lu Hz (db = -inf), se mantiene el valor anterior", frec_hz);
+                db = db_anterior;
+            }
+        }
+        db_anterior = db;
 
         display_msg_t msg_disp = {
             .type    = DISPLAY_MSG_SWEEP_POINT,
@@ -119,10 +132,8 @@ static void ejecutar_barrido(const sweep_config_t *config)
             .freq_hz = frec_hz,
             .db      = db,
         };
-        /*if (xQueueSend(queue_uart_tx, &msg_uart, 0) != pdTRUE)
+        if (xQueueSend(queue_uart_tx, &msg_uart, 0) != pdTRUE)
             ESP_LOGW(TAG, "queue_uart_tx llena, punto no enviado");
-
-        */
     }
 
     ad9833_disable_output();
