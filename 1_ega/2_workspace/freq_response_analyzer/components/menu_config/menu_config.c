@@ -1,20 +1,9 @@
 // --- Includes ---
 #include "menu_config.h"
 #include "esp_log.h"
-#include "driver/uart.h"
-#include <stdio.h>
 
 // --- Defines privados ---
-#define UART_PORT_NUM UART_NUM_0
-
-// --- Tipos privados ---
-typedef struct
-{
-    uint32_t frec_inicio;
-    uint32_t frec_final;
-    uint32_t puntos;
-    uint32_t tiempo;
-} sweep_config_t;
+#define SWEEP_TIEMPO_TICK_MS 10 // resolucion de vTaskDelay con CONFIG_FREERTOS_HZ=100
 
 // --- Variables privadas ---
 static const char *TAG = "menu_config";
@@ -23,11 +12,11 @@ static sweep_config_t config = {
     .frec_inicio = 10,
     .frec_final = 100000,
     .puntos = 200,
-    .tiempo = 5,
+    .tiempo = 30,
 };
 
-static const uint32_t MIN[] = {10, 10, 2, 1};
-static const uint32_t MAX[] = {100000, 100000, 200, 60};
+static const uint32_t MIN[] = {10, 11, 2, 1};
+static const uint32_t MAX[] = {99999, 100000, 512, 1000};
 
 static uint32_t *campo[] = {
     &config.frec_inicio, &config.frec_final,
@@ -35,7 +24,8 @@ static uint32_t *campo[] = {
 
 // --- Prototipos privados ---
 static void procesar_config_set(sweep_param_e param, uint32_t value);
-static void enviar_uart(const char *msg, size_t len);
+static void procesar_sweep_start(void);
+static sweep_start_result_e validar_config_completa(void);
 
 // --- Funciones ---
 
@@ -52,6 +42,9 @@ void task_menu_config(void *pvParameters)
             case MENU_EVT_CONFIG_SET:
                 procesar_config_set(ev.param, ev.value);
                 break;
+            case MENU_EVT_SWEEP_START:
+                procesar_sweep_start();
+                break;
             }
         }
     }
@@ -61,13 +54,15 @@ static void procesar_config_set(sweep_param_e param, uint32_t value)
 {
     if (value < MIN[param] || value > MAX[param])
     {
-        char buf[64];
-        int  len = snprintf(buf, sizeof(buf), "ERROR valor fuera de rango: param=%d value=%lu\n", param, value);
         ESP_LOGW(TAG, "valor fuera de rango: param=%d value=%lu, se mantiene el valor anterior", param, value);
-        enviar_uart(buf, len);
     }
     else
     {
+        if (param == SWEEP_PARAM_TIEMPO && value % SWEEP_TIEMPO_TICK_MS != 0)
+        {
+            value = ((value + SWEEP_TIEMPO_TICK_MS - 1) / SWEEP_TIEMPO_TICK_MS) * SWEEP_TIEMPO_TICK_MS;
+            ESP_LOGW(TAG, "tiempo de asentamiento redondeado a multiplo de tick: %lu ms", value);
+        }
         *campo[param] = value;
     }
 
@@ -84,17 +79,58 @@ static void procesar_config_set(sweep_param_e param, uint32_t value)
     }
 }
 
-// TX por UART protegida con mutex_uart_tx: usada para avisar errores ahora,
-// y reutilizable mas adelante para responder consultas (ej. "dame toda la config").
-static void enviar_uart(const char *msg, size_t len)
+// Orden de verificacion: rango de cada frecuencia, relacion entre ambas,
+// rango de puntos y por ultimo el asentamiento (depende de frec_inicio).
+static sweep_start_result_e validar_config_completa(void)
 {
-    if (xSemaphoreTake(mutex_uart_tx, pdMS_TO_TICKS(100)) == pdTRUE)
+    if (config.frec_inicio < MIN[SWEEP_PARAM_FREC_INICIO] || config.frec_inicio > MAX[SWEEP_PARAM_FREC_INICIO])
+        return SWEEP_START_ERR_FSTART_RANGE;
+
+    if (config.frec_final < MIN[SWEEP_PARAM_FREC_FINAL] || config.frec_final > MAX[SWEEP_PARAM_FREC_FINAL])
+        return SWEEP_START_ERR_FSTOP_RANGE;
+
+    if (config.frec_inicio >= config.frec_final)
+        return SWEEP_START_ERR_FSTART_GE_FSTOP;
+
+    if (config.puntos < MIN[SWEEP_PARAM_PUNTOS] || config.puntos > MAX[SWEEP_PARAM_PUNTOS])
+        return SWEEP_START_ERR_POINTS_RANGE;
+
+    // settle_min = (1/f_start)/4 segundos = 1000/(4*f_start) ms = 250/f_start ms
+    uint32_t settle_min_ms = (250 + config.frec_inicio - 1) / config.frec_inicio; // redondeo hacia arriba
+    if (config.tiempo < settle_min_ms)
+        return SWEEP_START_ERR_SETTLE_TOO_LOW;
+
+    return SWEEP_START_OK;
+}
+
+static void procesar_sweep_start(void)
+{
+    sweep_start_result_e resultado = validar_config_completa();
+    display_msg_t        msg = {0};
+
+    if (resultado == SWEEP_START_OK)
     {
-        uart_write_bytes(UART_PORT_NUM, msg, len);
-        xSemaphoreGive(mutex_uart_tx);
+        ESP_LOGI(TAG, "configuracion valida, iniciando barrido");
+
+        sweep_cmd_msg_t cmd = {
+            .cmd    = SWEEP_CMD_START,
+            .config = config,
+        };
+        if (xQueueSend(queue_sweep_cmd, &cmd, 0) != pdTRUE)
+            ESP_LOGW(TAG, "queue_sweep_cmd llena, no se pudo iniciar el barrido");
+
+        msg.type        = DISPLAY_MSG_SWEEP_START_OK;
+        msg.frec_inicio = config.frec_inicio;
+        msg.frec_final  = config.frec_final;
+        msg.puntos      = config.puntos;
     }
     else
     {
-        ESP_LOGW(TAG, "no se pudo tomar mutex_uart_tx, mensaje no enviado");
+        ESP_LOGW(TAG, "configuracion invalida para iniciar barrido: motivo=%d", resultado);
+        msg.type   = DISPLAY_MSG_SWEEP_START_ERROR;
+        msg.motivo = resultado;
     }
+
+    if (xQueueSend(queue_display, &msg, 0) != pdTRUE)
+        ESP_LOGW(TAG, "queue_display llena, resultado no mostrado");
 }

@@ -19,6 +19,7 @@ extern lv_obj_t * ui_swhdrleft;
 extern lv_obj_t * ui_swindicator;
 extern lv_obj_t * ui_swlblstatus;
 extern lv_obj_t * ui_swhdrright;
+extern lv_obj_t * ui_Panel1;
 extern lv_obj_t * ui_swchart;
 extern lv_obj_t * ui_swchart_Xaxis;
 extern lv_obj_t * ui_swchart_Yaxis1;

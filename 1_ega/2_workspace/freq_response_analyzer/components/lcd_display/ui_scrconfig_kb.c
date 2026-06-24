@@ -31,7 +31,7 @@ static const lv_buttonmatrix_ctrl_t kb_ctrl[] = {
 static sweep_param_e param_activo;
 static char          buf_entrada[KB_BUF_LEN];
 
-static const char *UNIT[] = {"Hz", "Hz", "pts", "s"};
+static const char *UNIT[] = {"Hz", "Hz", "pts", "ms"};
 
 // --- Prototipos privados ---
 static void update_label_raw(sweep_param_e param, const char *buf);
@@ -116,7 +116,7 @@ static void kb_event_cb(lv_event_t *e)
             menu_event_msg_t ev = {
                 .type  = MENU_EVT_CONFIG_SET,
                 .param = param_activo,
-                .value = (uint32_t)atoi(buf_entrada),
+                .value = (uint32_t)strtoul(buf_entrada, NULL, 10),
             };
             if (xQueueSend(queue_menu_events, &ev, 0) != pdTRUE)
                 ESP_LOGW(TAG, "queue_menu_events llena, valor descartado");
