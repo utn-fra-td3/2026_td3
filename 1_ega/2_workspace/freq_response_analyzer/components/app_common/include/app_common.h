@@ -37,38 +37,61 @@ typedef enum {
 } sweep_param_e;
 
 typedef enum {
-    MENU_EVT_CONFIG_SET // valor de configuracion propuesto desde lcd_display/uart, a validar por task_menu_config
+    MENU_EVT_CONFIG_SET,  // valor de configuracion propuesto desde lcd_display/uart, a validar por task_menu_config
+    MENU_EVT_SWEEP_START  // pedido de iniciar el barrido (boton touch), dispara la validacion de conjunto
 } menu_evt_e;
 
 typedef enum {
-    DISPLAY_MSG_CONFIG_VALUE // valor de configuracion ya validado por task_menu_config, listo para mostrar
+    DISPLAY_MSG_CONFIG_VALUE,      // valor de configuracion ya validado por task_menu_config, listo para mostrar
+    DISPLAY_MSG_SWEEP_START_OK,    // configuracion de conjunto valida, pasar a la pantalla de barrido
+    DISPLAY_MSG_SWEEP_START_ERROR  // configuracion de conjunto invalida, mostrar popup con el motivo
 } display_msg_type_e;
 
 typedef enum {
-    UART_TX_CONFIG_ERROR,  // menu_config: valor de config fuera de rango (param + value)
-    UART_TX_CONFIG_ACK,    // menu_config: valor de config aceptado (param + value)
-    UART_TX_SWEEP_POINT    // sweep: punto medido del barrido (freq_hz + db)
-} uart_tx_type_e;
+    SWEEP_START_OK,
+    SWEEP_START_ERR_FSTART_RANGE,    // f_start fuera de [10, 99999] Hz
+    SWEEP_START_ERR_FSTOP_RANGE,     // f_stop fuera de [11, 100000] Hz
+    SWEEP_START_ERR_FSTART_GE_FSTOP, // f_start no es menor que f_stop
+    SWEEP_START_ERR_POINTS_RANGE,    // n_points fuera de [2, 512]
+    SWEEP_START_ERR_SETTLE_TOO_LOW   // tiempo de asentamiento insuficiente para f_start
+} sweep_start_result_e;
+
+typedef enum {
+    SWEEP_CMD_START,
+    SWEEP_CMD_CANCEL,
+    SWEEP_CMD_PAUSE,
+    SWEEP_CMD_RESUME
+} sweep_cmd_e;
 
 // --- Tipos de mensajes ---
 typedef struct {
     menu_evt_e    type;
-    sweep_param_e param;
-    uint32_t      value; // unidad base: Hz, puntos o segundos segun param
+    sweep_param_e param; // valido para MENU_EVT_CONFIG_SET
+    uint32_t      value; // valido para MENU_EVT_CONFIG_SET; unidad base segun param
 } menu_event_msg_t;
 
 typedef struct {
-    display_msg_type_e type;
-    sweep_param_e       param;
-    uint32_t            value; // unidad base: Hz, puntos o segundos segun param
+    display_msg_type_e   type;
+    sweep_param_e         param;  // valido para DISPLAY_MSG_CONFIG_VALUE
+    uint32_t              value;  // valido para DISPLAY_MSG_CONFIG_VALUE; unidad base segun param
+    sweep_start_result_e  motivo; // valido para DISPLAY_MSG_SWEEP_START_ERROR
 } display_msg_t;
 
 typedef struct {
-    uart_tx_type_e type;
-    sweep_param_e   param;    // valido para UART_TX_CONFIG_*
-    uint32_t        value;    // valido para UART_TX_CONFIG_*
-    uint32_t        freq_hz;  // valido para UART_TX_SWEEP_POINT
-    float           db;       // valido para UART_TX_SWEEP_POINT
+    uint32_t frec_inicio;
+    uint32_t frec_final;
+    uint32_t puntos;
+    uint32_t tiempo; // tiempo de asentamiento por punto, ms
+} sweep_config_t;
+
+typedef struct {
+    sweep_cmd_e    cmd;
+    sweep_config_t config; // valida para SWEEP_CMD_START
+} sweep_cmd_msg_t;
+
+typedef struct {
+    uint32_t freq_hz; // frecuencia del punto medido, Hz
+    float    db;      // transferencia calculada, dB
 } uart_tx_msg_t; // task_uart es quien formatea el texto a partir de estos datos
 
 // --- Handles compartidos (extern) ---

@@ -98,8 +98,6 @@ static void procesar_comando(const char *cmd)
 {
     char     nombre_param[16];
     uint32_t value;
-    char     buf[64];
-    int      len;
 
     if (sscanf(cmd, "set %15s %lu", nombre_param, &value) == 2)
     {
@@ -108,15 +106,10 @@ static void procesar_comando(const char *cmd)
     }
 
     ESP_LOGW(TAG, "comando no reconocido: %s", cmd);
-    len = snprintf(buf, sizeof(buf), "ERROR comando desconocido: %s\n", cmd);
-    enviar_uart(buf, len);
 }
 
 static void procesar_set(const char *nombre_param, uint32_t value)
 {
-    char buf[64];
-    int  len;
-
     for (size_t i = 0; i < CANT_PARAMS; i++)
     {
         if (strcmp(nombre_param, TABLA_PARAMS[i].nombre) != 0)
@@ -133,8 +126,6 @@ static void procesar_set(const char *nombre_param, uint32_t value)
     }
 
     ESP_LOGW(TAG, "parametro desconocido: %s", nombre_param);
-    len = snprintf(buf, sizeof(buf), "ERROR parametro desconocido: %s\n", nombre_param);
-    enviar_uart(buf, len);
 }
 
 static void enviar_uart(const char *msg, size_t len)
@@ -157,19 +148,5 @@ static void procesar_queue_uart_tx(void)
 
 static void formatear_uart_tx(const uart_tx_msg_t *tx, char *buf, size_t buf_len, int *len)
 {
-    switch (tx->type)
-    {
-    case UART_TX_CONFIG_ERROR:
-        *len = snprintf(buf, buf_len, "ERROR valor fuera de rango: param=%d value=%lu\n", tx->param, tx->value);
-        break;
-    case UART_TX_CONFIG_ACK:
-        *len = snprintf(buf, buf_len, "ACK param=%d value=%lu\n", tx->param, tx->value);
-        break;
-    case UART_TX_SWEEP_POINT:
-        *len = snprintf(buf, buf_len, "POINT freq=%lu db=%.2f\n", tx->freq_hz, tx->db);
-        break;
-    default:
-        *len = 0;
-        break;
-    }
+    *len = snprintf(buf, buf_len, "POINT freq=%lu db=%.2f\n", tx->freq_hz, tx->db);
 }

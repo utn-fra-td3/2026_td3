@@ -45,11 +45,21 @@ static lv_obj_t **val_labels_config[] = {
     &ui_lblvalue3, &ui_lblvalue4
 };
 
+static const char *TEXTO_ERROR_SWEEP[] = {
+    "",                                                                // SWEEP_START_OK, no se usa
+    "Frecuencia inicial fuera de rango (10 - 99999 Hz)",
+    "Frecuencia final fuera de rango (11 - 100000 Hz)",
+    "La frecuencia inicial debe ser menor que la final",
+    "Cantidad de puntos fuera de rango (2 - 512)",
+    "Tiempo de asentamiento insuficiente para la frecuencia inicial",
+};
+
 // --- Prototipos privados ---
 static void lcd_init(void);
 static void lvgl_init(void);
 static void touch_init(void);
 static void mostrar_config_value(sweep_param_e param, uint32_t value);
+static void mostrar_popup_error(sweep_start_result_e motivo);
 
 // --- Funciones ---
 
@@ -191,6 +201,12 @@ void task_lcd_display(void *pvParameters)
             case DISPLAY_MSG_CONFIG_VALUE:
                 mostrar_config_value(msg.param, msg.value);
                 break;
+            case DISPLAY_MSG_SWEEP_START_OK:
+                lv_disp_load_scr(ui_scrsweep);
+                break;
+            case DISPLAY_MSG_SWEEP_START_ERROR:
+                mostrar_popup_error(msg.motivo);
+                break;
             }
             lvgl_port_unlock();
         }
@@ -205,9 +221,19 @@ static void mostrar_config_value(sweep_param_e param, uint32_t value)
     {
         uint32_t khz_entero  = value / 1000;
         uint32_t khz_decimal = (value % 1000) / 100;
-        snprintf(tmp, sizeof(tmp), "%lu.%lu kHz", khz_entero, khz_decimal);
+        if (khz_decimal == 0)
+            snprintf(tmp, sizeof(tmp), "%lu kHz", khz_entero);
+        else
+            snprintf(tmp, sizeof(tmp), "%lu.%lu kHz", khz_entero, khz_decimal);
     }
     else
         snprintf(tmp, sizeof(tmp), "%lu %s", value, UNIT_CONFIG[param]);
     lv_label_set_text(*val_labels_config[param], tmp);
+}
+
+static void mostrar_popup_error(sweep_start_result_e motivo)
+{
+    lv_label_set_text(ui_uicfgpopuplbl, TEXTO_ERROR_SWEEP[motivo]);
+    lv_obj_remove_flag(ui_uicfgpopup, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_move_foreground(ui_uicfgpopup);
 }

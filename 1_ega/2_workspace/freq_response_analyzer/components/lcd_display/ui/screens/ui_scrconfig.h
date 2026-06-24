@@ -37,6 +37,15 @@ extern void ui_event_btnstart(lv_event_t * e);
 extern lv_obj_t * ui_btnstart;
 extern lv_obj_t * ui_Label7;
 extern lv_obj_t * ui_Keyboard1;
+extern lv_obj_t * ui_uicfgpopup;
+extern lv_obj_t * ui_uicfgpopuppanel;
+extern lv_obj_t * ui_uicfgpopuphdr;
+extern lv_obj_t * ui_uicfgpopupdot;
+extern lv_obj_t * ui_uicfgpopuptitle;
+extern lv_obj_t * ui_uicfgpopuplbl;
+extern void ui_event_uicfgpopupbtnok(lv_event_t * e);
+extern lv_obj_t * ui_uicfgpopupbtnok;
+extern lv_obj_t * ui_Label5;
 // CUSTOM VARIABLES
 extern lv_obj_t * uic_lbltitle;
 

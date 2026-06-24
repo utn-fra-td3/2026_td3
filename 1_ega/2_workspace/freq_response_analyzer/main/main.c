@@ -22,7 +22,8 @@ void app_main(void)
 
     queue_menu_events = xQueueCreate(QUEUE_MENU_EVENTS_LEN, sizeof(menu_event_msg_t));
     configASSERT(queue_menu_events != NULL);
-    // queue_sweep_cmd = xQueueCreate(QUEUE_SWEEP_CMD_LEN, sizeof(sweep_cmd_msg_t));
+    queue_sweep_cmd = xQueueCreate(QUEUE_SWEEP_CMD_LEN, sizeof(sweep_cmd_msg_t));
+    configASSERT(queue_sweep_cmd != NULL);
     queue_display = xQueueCreate(QUEUE_DISPLAY_LEN, sizeof(display_msg_t));
     configASSERT(queue_display != NULL);
     // queue_nvs_cmd = xQueueCreate(QUEUE_NVS_CMD_LEN, sizeof(nvs_cmd_msg_t));
