@@ -5466,7 +5466,7 @@
 	)
 	(wire
 		(pts
-			(xy 158.75 144.78) (xy 167.64 144.78)
+			(xy 157.48 144.78) (xy 166.37 144.78)
 		)
 		(stroke
 			(width 0)
@@ -7525,7 +7525,7 @@
 		(uuid "f06de91e-0f69-4225-8d2d-c5198b8c0482")
 	)
 	(label "DDS_OUT"
-		(at 158.75 144.78 0)
+		(at 157.48 144.78 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -10394,7 +10394,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 25.654 40.64 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10968,7 +10968,7 @@
 				)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 101.6 24.13 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11387,7 +11387,7 @@
 				)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 130.81 24.13 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12136,7 +12136,7 @@
 				)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 247.65 87.63 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12313,7 +12313,7 @@
 				)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 247.65 31.75 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12471,7 +12471,7 @@
 	)
 	(symbol
 		(lib_id "Connector:TestPoint")
-		(at 167.64 144.78 270)
+		(at 166.37 144.78 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -12482,7 +12482,7 @@
 		(fields_autoplaced yes)
 		(uuid "7947d824-d4c5-44f3-ac45-abaf4f92ca6d")
 		(property "Reference" "TP7"
-			(at 172.72 143.5099 90)
+			(at 171.45 143.5099 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12492,8 +12492,8 @@
 				(justify left)
 			)
 		)
-		(property "Value" "Vin"
-			(at 172.72 146.0499 90)
+		(property "Value" "DDS_out"
+			(at 171.45 146.0499 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12504,7 +12504,7 @@
 			)
 		)
 		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical"
-			(at 167.64 149.86 0)
+			(at 166.37 149.86 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12515,7 +12515,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 167.64 149.86 0)
+			(at 166.37 149.86 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12526,7 +12526,7 @@
 			)
 		)
 		(property "Description" "test point"
-			(at 167.64 144.78 0)
+			(at 166.37 144.78 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12570,7 +12570,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 165.354 96.52 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13956,7 +13956,7 @@
 				)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 204.47 104.902 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14567,7 +14567,7 @@
 				)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 204.47 49.022 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -15471,7 +15471,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "OPA2134"
+		(property "Value" "TL072"
 			(at 165.354 40.64 0)
 			(show_name no)
 			(do_not_autoplace no)

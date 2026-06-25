@@ -1,6 +1,9 @@
-screens/ui_Screen1.c
+screens/ui_scrconfig.c
+screens/ui_scrsweep.c
 ui.c
 components/ui_comp_hook.c
 ui_helpers.c
 ui_events.c
-fonts/ui_font_robotomono_14.c
+fonts/ui_font_RobotoMono12.c
+fonts/ui_font_RobotoMono14.c
+fonts/ui_font_RobotoMono18.c
