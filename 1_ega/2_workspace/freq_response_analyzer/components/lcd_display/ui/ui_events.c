@@ -7,10 +7,10 @@
 #include "esp_log.h"
 #include "app_common.h"
 
-void ui_event_btn_start(lv_event_t * e)
+void ui_event_btn_start(lv_event_t *e)
 {
     menu_event_msg_t ev = {
-        .type = MENU_EVT_SWEEP_START,
+        .type = MENU_EVT_BTN_START,
     };
     if (xQueueSend(queue_menu_events, &ev, 0) != pdTRUE)
     {
@@ -18,23 +18,30 @@ void ui_event_btn_start(lv_event_t * e)
     }
 }
 
-void ui_event_btn_pausar(lv_event_t * e)
+void ui_event_btn_pausar(lv_event_t *e)
 {
-	ESP_LOGI("UI", "Barrido pausado");
+    menu_event_msg_t ev = {
+        .type = MENU_EVT_BTN_PAUSE,
+    };
+    if (xQueueSend(queue_menu_events, &ev, 0) != pdTRUE)
+    {
+        ESP_LOGW("UI", "queue_menu_events llena, pedido de pausar/reanudar descartado");
+        return;
+    }
 }
 
-void ui_event_btn_config(lv_event_t * e)
-{
-    lv_disp_load_scr(ui_scrconfig);
-    ESP_LOGI("UI", "Volviendo a config");
-}
-
-void ui_event_btn_reiniciar(lv_event_t * e)
-{
-	ESP_LOGI("UI", "Reiniciando barrido");
-}
-
-void ui_event_cfg_popup_ok(lv_event_t * e)
+void ui_event_cfg_popup_ok(lv_event_t *e)
 {
     lv_obj_add_flag(ui_uicfgpopup, LV_OBJ_FLAG_HIDDEN);
+}
+
+void ui_event_btn_cancelar(lv_event_t *e)
+{
+    menu_event_msg_t ev = {
+        .type = MENU_EVT_BTN_CANCEL,
+    };
+    if (xQueueSend(queue_menu_events, &ev, 0) != pdTRUE)
+    {
+        ESP_LOGW("UI", "queue_menu_events llena, pedido de cancelar/volver a configurar descartado");
+    }
 }

@@ -5,12 +5,13 @@
 #include "esp_log.h"
 #include "driver/gpio.h"
 #include <math.h>
+#include <stdbool.h>
 
 // --- Defines privados ---
 #define SWEEP_RST_VIN GPIO_NUM_6
 #define SWEEP_RST_VO GPIO_NUM_16
 #define SWEEP_RESET_PULSO_MS 10
-#define SWEEP_MUESTRAS 10 // cantidad de lecturas de ADC por frecuencia
+#define SWEEP_MUESTRAS 10  // cantidad de lecturas de ADC por frecuencia
 #define SWEEP_VIN_MIN_MV 1 // minimo valor aceptable del ADC, evita log10(0) con vin = 0
 
 // --- Variables privadas ---
@@ -20,7 +21,9 @@ static const char *TAG = "sweep";
 static void inicializar_gpio(void);
 static void resetear_detectores_pico(void);
 static uint32_t calcular_frecuencia(uint32_t frec_inicio, uint32_t frec_final, uint32_t puntos, uint32_t i);
-static float medir_punto(uint32_t frec_hz, uint32_t tiempo_asentamiento_ms);
+static bool medir_punto(uint32_t frec_hz, uint32_t tiempo_asentamiento_ms, float *db);
+static bool esperar_resume_o_cancelar(void);
+static bool atender_pausa_y_cancelar(uint32_t frec_hz, TickType_t ticks_espera);
 static void ejecutar_barrido(const sweep_config_t *config);
 
 // --- Funciones ---
@@ -79,13 +82,18 @@ static uint32_t calcular_frecuencia(uint32_t frec_inicio, uint32_t frec_final, u
     return (uint32_t)(frec + 0.5f);
 }
 
-static float medir_punto(uint32_t frec_hz, uint32_t tiempo_asentamiento_ms)
+static bool medir_punto(uint32_t frec_hz, uint32_t tiempo_asentamiento_ms, float *db)
 {
     ad9833_set_freq(frec_hz);
     ad9833_disable_output(); // apagar DDS antes del reset del detector de pico
     resetear_detectores_pico();
-    ad9833_enable_output(); // encender DDS y espero tiemo de asentamiento
-    vTaskDelay(pdMS_TO_TICKS(tiempo_asentamiento_ms));
+    ad9833_enable_output(); // encender DDS y espero tiempo de asentamiento
+
+    // Esperar tiempo de asentamiento mientras reviso comandos de pausa o cancelacion
+    if (atender_pausa_y_cancelar(frec_hz, pdMS_TO_TICKS(tiempo_asentamiento_ms)))
+    {
+        return true; // cancelado durante el asentamiento
+    }
 
     int suma_vin = 0;
     int suma_vout = 0;
@@ -102,9 +110,50 @@ static float medir_punto(uint32_t frec_hz, uint32_t tiempo_asentamiento_ms)
     float vin_prom = (float)suma_vin / SWEEP_MUESTRAS;
     float vout_prom = (float)suma_vout / SWEEP_MUESTRAS;
 
-    //ESP_LOGI(TAG, "frec.: %lu Hz, vin_prom = %.2f mV, vout_prom = %.2f mV", frec_hz, vin_prom, vout_prom);
+    *db = 20.0f * log10f(vin_prom / vout_prom); // transferencia = respuesta/excitacion = vin/vout
+    return false;
+}
 
-    return 20.0f * log10f(vin_prom / vout_prom); // transferencia = respuesta/excitacion = vin/vout
+// Esperar comando para reanudar o cancelar el barrido. true si se cancela, false si se reanuda
+static bool esperar_resume_o_cancelar()
+{
+    sweep_cmd_msg_t cmd;
+    while (1)
+    {
+        xQueueReceive(queue_sweep_cmd, &cmd, portMAX_DELAY);
+
+        if (cmd.cmd == SWEEP_CMD_RESUME)
+        {
+            ESP_LOGI(TAG, "barrido reanudado");
+            return false;
+        }
+        if (cmd.cmd == SWEEP_CMD_CANCEL)
+        {
+            return true;
+        }
+    }
+}
+
+static bool atender_pausa_y_cancelar(uint32_t frec_hz, TickType_t ticks_espera)
+{
+    sweep_cmd_msg_t cmd;
+    if (xQueueReceive(queue_sweep_cmd, &cmd, ticks_espera) != pdTRUE)
+    {
+        return false;
+    }
+
+    if (cmd.cmd == SWEEP_CMD_CANCEL)
+    {
+        return true;
+    }
+
+    if (cmd.cmd == SWEEP_CMD_PAUSE)
+    {
+        ESP_LOGI(TAG, "barrido pausado en %lu Hz", frec_hz);
+        return esperar_resume_o_cancelar();
+    }
+
+    return false;
 }
 
 static void ejecutar_barrido(const sweep_config_t *config)
@@ -125,7 +174,11 @@ static void ejecutar_barrido(const sweep_config_t *config)
         else
         {
             frec_anterior = frec_hz;
-            db = medir_punto(frec_hz, config->tiempo);
+            if (medir_punto(frec_hz, config->tiempo, &db))
+            {
+                ESP_LOGI(TAG, "barrido cancelado");
+                break;
+            }
         }
         db_anterior = db;
 
@@ -151,4 +204,10 @@ static void ejecutar_barrido(const sweep_config_t *config)
 
     ad9833_disable_output();
     ESP_LOGI(TAG, "barrido finalizado");
+
+    menu_event_msg_t ev = {.type = MENU_EVT_SWEEP_FINISHED};
+    if (xQueueSend(queue_menu_events, &ev, 0) != pdTRUE)
+    {
+        ESP_LOGW(TAG, "queue_menu_events llena, fin de barrido no informado");
+    }
 }

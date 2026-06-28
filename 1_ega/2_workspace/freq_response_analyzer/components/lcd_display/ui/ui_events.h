@@ -13,8 +13,7 @@ extern "C" {
 void ui_event_btn_start(lv_event_t * e);
 void ui_event_cfg_popup_ok(lv_event_t * e);
 void ui_event_btn_pausar(lv_event_t * e);
-void ui_event_btn_config(lv_event_t * e);
-void ui_event_btn_reiniciar(lv_event_t * e);
+void ui_event_btn_cancelar(lv_event_t * e);
 
 #ifdef __cplusplus
 } /*extern "C"*/

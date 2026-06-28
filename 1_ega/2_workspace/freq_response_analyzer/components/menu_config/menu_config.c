@@ -1,9 +1,20 @@
 // --- Includes ---
 #include "menu_config.h"
 #include "esp_log.h"
+#include <stdbool.h>
+
+// --- Tipos privados ---
+typedef enum
+{
+    CONFIGURACION,
+    BARRIDO_INICIADO,
+    BARRIDO_PAUSADO,
+    BARRIDO_FINALIZADO
+} estado_barrido_e;
 
 // --- Variables privadas ---
 static const char *TAG = "menu_config";
+static estado_barrido_e estado_barrido = CONFIGURACION;
 
 static sweep_config_t config = {
     .frec_inicio = 10,
@@ -23,6 +34,13 @@ static uint32_t *campo[] = {
 static void procesar_config_set(sweep_param_e param, uint32_t value);
 static void procesar_sweep_start(void);
 static sweep_start_result_e validar_config_completa(void);
+static void enviar_msg_display(display_msg_type_e type);
+static void enviar_cmd_sweep(sweep_cmd_e cmd_tipo);
+static void pausar(void);
+static void reanudar(void);
+static void cancelar(void);
+static void volver_a_config(void);
+static void finalizar_barrido(void);
 
 // --- Funciones ---
 
@@ -39,8 +57,61 @@ void task_menu_config(void *pvParameters)
             case MENU_EVT_CONFIG_SET:
                 procesar_config_set(ev.param, ev.value);
                 break;
-            case MENU_EVT_SWEEP_START:
-                procesar_sweep_start();
+            case MENU_EVT_BTN_START:
+                if (estado_barrido == CONFIGURACION)
+                {
+                    procesar_sweep_start();
+                }
+                break;
+            case MENU_EVT_BTN_PAUSE:
+                if (estado_barrido == BARRIDO_INICIADO)
+                {
+                    pausar();
+                }
+                else if (estado_barrido == BARRIDO_PAUSADO)
+                {
+                    reanudar();
+                }
+                break;
+            case MENU_EVT_BTN_CANCEL:
+                if (estado_barrido == BARRIDO_INICIADO || estado_barrido == BARRIDO_PAUSADO)
+                {
+                    cancelar();
+                }
+                else if (estado_barrido == BARRIDO_FINALIZADO)
+                {
+                    volver_a_config();
+                }
+                break;
+            case MENU_EVT_BTN1:
+                if (estado_barrido == CONFIGURACION)
+                {
+                    procesar_sweep_start();
+                }
+                else if (estado_barrido == BARRIDO_INICIADO)
+                {
+                    pausar();
+                }
+                else if (estado_barrido == BARRIDO_PAUSADO)
+                {
+                    reanudar();
+                }
+                break;
+            case MENU_EVT_BTN2:
+                if (estado_barrido == BARRIDO_INICIADO || estado_barrido == BARRIDO_PAUSADO)
+                {
+                    cancelar();
+                }
+                else if (estado_barrido == BARRIDO_FINALIZADO)
+                {
+                    volver_a_config();
+                }
+                break;
+            case MENU_EVT_SWEEP_FINISHED:
+                if (estado_barrido == BARRIDO_INICIADO)
+                {
+                    finalizar_barrido();
+                }
                 break;
             }
         }
@@ -111,14 +182,14 @@ static sweep_start_result_e validar_config_completa(void)
 static void procesar_sweep_start(void)
 {
     sweep_start_result_e resultado = validar_config_completa();
-    display_msg_t        msg = {0};
+    display_msg_t msg = {0};
 
     if (resultado == SWEEP_START_OK)
     {
         ESP_LOGI(TAG, "configuracion valida, iniciando barrido");
 
         sweep_cmd_msg_t cmd = {
-            .cmd    = SWEEP_CMD_START,
+            .cmd = SWEEP_CMD_START,
             .config = config,
         };
         if (xQueueSend(queue_sweep_cmd, &cmd, 0) != pdTRUE)
@@ -126,15 +197,17 @@ static void procesar_sweep_start(void)
             ESP_LOGW(TAG, "queue_sweep_cmd llena, no se pudo iniciar el barrido");
         }
 
-        msg.type        = DISPLAY_MSG_SWEEP_START_OK;
+        estado_barrido = BARRIDO_INICIADO;
+
+        msg.type = DISPLAY_MSG_SWEEP_START_OK;
         msg.frec_inicio = config.frec_inicio;
-        msg.frec_final  = config.frec_final;
-        msg.puntos      = config.puntos;
+        msg.frec_final = config.frec_final;
+        msg.puntos = config.puntos;
     }
     else
     {
         ESP_LOGW(TAG, "configuracion invalida para iniciar barrido: %d", resultado);
-        msg.type   = DISPLAY_MSG_SWEEP_START_ERROR;
+        msg.type = DISPLAY_MSG_SWEEP_START_ERROR;
         msg.motivo = resultado;
     }
 
@@ -142,4 +215,60 @@ static void procesar_sweep_start(void)
     {
         ESP_LOGW(TAG, "queue_display llena, resultado no mostrado");
     }
+
+    if (resultado == SWEEP_START_OK)
+    {
+        enviar_msg_display(DISPLAY_MSG_SHOW_SWEEP);
+    }
+}
+
+static void enviar_msg_display(display_msg_type_e type)
+{
+    display_msg_t msg = {.type = type};
+    if (xQueueSend(queue_display, &msg, 0) != pdTRUE)
+    {
+        ESP_LOGW(TAG, "queue_display llena, mensaje %d no mostrado", type);
+    }
+}
+
+static void enviar_cmd_sweep(sweep_cmd_e cmd_tipo)
+{
+    sweep_cmd_msg_t cmd = {.cmd = cmd_tipo};
+    if (xQueueSend(queue_sweep_cmd, &cmd, 0) != pdTRUE)
+    {
+        ESP_LOGW(TAG, "queue_sweep_cmd llena, comando %d no enviado", cmd_tipo);
+    }
+}
+
+static void pausar(void)
+{
+    enviar_cmd_sweep(SWEEP_CMD_PAUSE);
+    estado_barrido = BARRIDO_PAUSADO;
+    enviar_msg_display(DISPLAY_MSG_SHOW_PAUSE);
+}
+
+static void reanudar(void)
+{
+    enviar_cmd_sweep(SWEEP_CMD_RESUME);
+    estado_barrido = BARRIDO_INICIADO;
+    enviar_msg_display(DISPLAY_MSG_SHOW_RESUME);
+}
+
+static void cancelar(void)
+{
+    enviar_cmd_sweep(SWEEP_CMD_CANCEL);
+    estado_barrido = CONFIGURACION;
+    enviar_msg_display(DISPLAY_MSG_SHOW_CONFIG);
+}
+
+static void volver_a_config(void)
+{
+    estado_barrido = CONFIGURACION;
+    enviar_msg_display(DISPLAY_MSG_SHOW_CONFIG);
+}
+
+static void finalizar_barrido(void)
+{
+    estado_barrido = BARRIDO_FINALIZADO;
+    enviar_msg_display(DISPLAY_MSG_SHOW_CANCEL);
 }

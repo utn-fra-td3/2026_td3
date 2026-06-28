@@ -43,6 +43,7 @@ static lv_disp_t *disp_handle = NULL;
 static i2c_master_bus_handle_t i2c_bus = NULL;
 static esp_lcd_touch_handle_t tp_handle = NULL;
 static lv_chart_series_t *swchart_serie = NULL;
+static lv_anim_t *swindicator_anim = NULL;
 static uint16_t swchart_idx = 0;
 static char swchart_xaxis_buf[SWCHART_XAXIS_TICKS][12];
 static const char *swchart_xaxis_txt_src[SWCHART_XAXIS_TICKS + 1];
@@ -201,7 +202,7 @@ void task_lcd_display(void *pvParameters)
     swchart_serie = lv_chart_add_series(ui_swchart, lv_color_hex(0xF5D020), LV_CHART_AXIS_PRIMARY_Y);
     lv_chart_set_axis_range(ui_swchart, LV_CHART_AXIS_PRIMARY_Y, SWCHART_DB_MIN, SWCHART_DB_MAX);
     lv_scale_set_range(ui_swchart_Yaxis1, SWCHART_DB_MIN, SWCHART_DB_MAX);
-    animindicatorpulse_Animation(ui_swindicator, 0);
+    swindicator_anim = animindicatorpulse_Animation(ui_swindicator, 0);
 
     lvgl_port_unlock(); // liberar mutex de LVGL
 
@@ -221,7 +222,6 @@ void task_lcd_display(void *pvParameters)
             case DISPLAY_MSG_SWEEP_START_OK:
                 swchart_actualizar_escala_frecuencia(msg.frec_inicio, msg.frec_final);
                 swchart_reiniciar(msg.puntos);
-                lv_disp_load_scr(ui_scrsweep);
                 break;
             case DISPLAY_MSG_SWEEP_START_ERROR:
                 mostrar_popup_error(msg.motivo);
@@ -229,6 +229,26 @@ void task_lcd_display(void *pvParameters)
             case DISPLAY_MSG_SWEEP_POINT:
                 ESP_LOGI(TAG, "punto recibido: %lu Hz, %.2f dB", msg.freq_hz, msg.db);
                 swchart_agregar_punto(msg.db);
+                break;
+            case DISPLAY_MSG_SHOW_SWEEP:
+                lv_anim_resume(swindicator_anim);
+                lv_disp_load_scr(ui_scrsweep);
+                break;
+            case DISPLAY_MSG_SHOW_CONFIG:
+                lv_label_set_text(ui_lblbtnpausar, "PAUSAR");
+                lv_label_set_text(ui_lblbtncancelar, "CANCELAR");
+                lv_disp_load_scr(ui_scrconfig);
+                break;
+            case DISPLAY_MSG_SHOW_PAUSE:
+                lv_label_set_text(ui_lblbtnpausar, "REANUDAR");
+                lv_anim_pause(swindicator_anim);
+                break;
+            case DISPLAY_MSG_SHOW_RESUME:
+                lv_label_set_text(ui_lblbtnpausar, "PAUSAR");
+                lv_anim_resume(swindicator_anim);
+                break;
+            case DISPLAY_MSG_SHOW_CANCEL:
+                lv_label_set_text(ui_lblbtncancelar, "CONFIGURAR");
                 break;
             }
             lvgl_port_unlock();

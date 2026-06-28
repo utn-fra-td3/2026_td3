@@ -45,7 +45,12 @@ typedef enum
 typedef enum
 {
     MENU_EVT_CONFIG_SET,
-    MENU_EVT_SWEEP_START
+    MENU_EVT_BTN_START,     // boton iniciar
+    MENU_EVT_BTN_PAUSE,     // boton pausar/reanudar
+    MENU_EVT_BTN_CANCEL,    // boton cancelar/configurar
+    MENU_EVT_BTN1,          // boton fisico 1
+    MENU_EVT_BTN2,          // boton fisico 2
+    MENU_EVT_SWEEP_FINISHED
 } menu_evt_e;
 
 typedef enum
@@ -53,16 +58,21 @@ typedef enum
     DISPLAY_MSG_CONFIG_VALUE,      // valor de configuracion ya validado por task_menu_config, listo para mostrar
     DISPLAY_MSG_SWEEP_START_OK,    // configuracion de conjunto valida, pasar a la pantalla de barrido
     DISPLAY_MSG_SWEEP_START_ERROR, // configuracion de conjunto invalida, mostrar popup con el motivo
-    DISPLAY_MSG_SWEEP_POINT        // punto medido del barrido (freq_hz + db), task_sweep
+    DISPLAY_MSG_SWEEP_POINT,       // punto medido del barrido (freq_hz + db), task_sweep
+    DISPLAY_MSG_SHOW_SWEEP,        // mostrar pantalla de barrido
+    DISPLAY_MSG_SHOW_CONFIG,       // mostrar pantalla de configuracion
+    DISPLAY_MSG_SHOW_PAUSE,        // mostrar pantalla de pausa
+    DISPLAY_MSG_SHOW_RESUME,       // mostrar pantalla de reanudacion
+    DISPLAY_MSG_SHOW_CANCEL,       // mostrar pantalla de cancelacion
 } display_msg_type_e;
 
 typedef enum
 {
     SWEEP_START_OK,
-    SWEEP_START_ERR_FSTART_RANGE,  // f_start fuera de rango
-    SWEEP_START_ERR_FSTOP_RANGE,   // f_stop fuera de rango
-    SWEEP_START_ERR_FRANGE,        // f_start no es menor que f_stop
-    SWEEP_START_ERR_POINTS_RANGE,  // n_points fuera de rango
+    SWEEP_START_ERR_FSTART_RANGE,   // f_start fuera de rango
+    SWEEP_START_ERR_FSTOP_RANGE,    // f_stop fuera de rango
+    SWEEP_START_ERR_FRANGE,         // f_start no es menor que f_stop
+    SWEEP_START_ERR_POINTS_RANGE,   // n_points fuera de rango
     SWEEP_START_ERR_SETTLE_TIME_LOW // tiempo de asentamiento insuficiente para la frecuencia inicial
 } sweep_start_result_e;
 
