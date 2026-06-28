@@ -1,7 +1,6 @@
-esp_err_t mcp4725_set_voltage(uint16_t value);
+#ifndef DAC_MCP4725_H
+#define DAC_MCP4725_H
 
-// Define el puerto I2C0
-#define I2C_MASTER_NUM  I2C_NUM_0 
+void task_dac_update(void *pvParameters);
 
-// La dirección I2C del módulo
-#define MCP4725_ADDR    0x60      
+#endif
