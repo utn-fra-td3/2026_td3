@@ -2,9 +2,6 @@
 #include "menu_config.h"
 #include "esp_log.h"
 
-// --- Defines privados ---
-#define SWEEP_TIEMPO_TICK_MS 10 // resolucion de vTaskDelay con CONFIG_FREERTOS_HZ=100
-
 // --- Variables privadas ---
 static const char *TAG = "menu_config";
 
@@ -58,16 +55,16 @@ static void procesar_config_set(sweep_param_e param, uint32_t value)
     }
     else
     {
-        if (param == SWEEP_PARAM_TIEMPO && value % SWEEP_TIEMPO_TICK_MS != 0)
+        if (param == SWEEP_PARAM_TIEMPO && value % portTICK_PERIOD_MS != 0)
         {
-            value = ((value + SWEEP_TIEMPO_TICK_MS - 1) / SWEEP_TIEMPO_TICK_MS) * SWEEP_TIEMPO_TICK_MS;
+            // Redondeo para arriba
+            value = ((value + portTICK_PERIOD_MS - 1) / portTICK_PERIOD_MS) * portTICK_PERIOD_MS;
             ESP_LOGW(TAG, "tiempo de asentamiento redondeado a multiplo de tick: %lu ms", value);
         }
         *campo[param] = value;
     }
 
-    // Siempre se reenvia el valor vigente (nuevo si fue valido, el anterior si no),
-    // asi lcd_display nunca queda mostrando un valor sin confirmar por este componente.
+    // Se reenvia el valor nuevo o el anterior si estaba fuera de rango
     display_msg_t msg = {
         .type = DISPLAY_MSG_CONFIG_VALUE,
         .param = param,
@@ -79,26 +76,34 @@ static void procesar_config_set(sweep_param_e param, uint32_t value)
     }
 }
 
-// Orden de verificacion: rango de cada frecuencia, relacion entre ambas,
-// rango de puntos y por ultimo el asentamiento (depende de frec_inicio).
 static sweep_start_result_e validar_config_completa(void)
 {
     if (config.frec_inicio < MIN[SWEEP_PARAM_FREC_INICIO] || config.frec_inicio > MAX[SWEEP_PARAM_FREC_INICIO])
+    {
         return SWEEP_START_ERR_FSTART_RANGE;
+    }
 
     if (config.frec_final < MIN[SWEEP_PARAM_FREC_FINAL] || config.frec_final > MAX[SWEEP_PARAM_FREC_FINAL])
+    {
         return SWEEP_START_ERR_FSTOP_RANGE;
+    }
 
     if (config.frec_inicio >= config.frec_final)
-        return SWEEP_START_ERR_FSTART_GE_FSTOP;
+    {
+        return SWEEP_START_ERR_FRANGE;
+    }
 
     if (config.puntos < MIN[SWEEP_PARAM_PUNTOS] || config.puntos > MAX[SWEEP_PARAM_PUNTOS])
+    {
         return SWEEP_START_ERR_POINTS_RANGE;
+    }
 
-    // settle_min = (1/f_start)/4 segundos = 1000/(4*f_start) ms = 250/f_start ms
+    // Tiempo de asentamiento minimo esta definido por 1/4 de periodo de la frecuencia inicial, redondeado hacia arriba
     uint32_t settle_min_ms = (250 + config.frec_inicio - 1) / config.frec_inicio; // redondeo hacia arriba
     if (config.tiempo < settle_min_ms)
-        return SWEEP_START_ERR_SETTLE_TOO_LOW;
+    {
+        return SWEEP_START_ERR_SETTLE_TIME_LOW;
+    }
 
     return SWEEP_START_OK;
 }
@@ -117,7 +122,9 @@ static void procesar_sweep_start(void)
             .config = config,
         };
         if (xQueueSend(queue_sweep_cmd, &cmd, 0) != pdTRUE)
+        {
             ESP_LOGW(TAG, "queue_sweep_cmd llena, no se pudo iniciar el barrido");
+        }
 
         msg.type        = DISPLAY_MSG_SWEEP_START_OK;
         msg.frec_inicio = config.frec_inicio;
@@ -126,11 +133,13 @@ static void procesar_sweep_start(void)
     }
     else
     {
-        ESP_LOGW(TAG, "configuracion invalida para iniciar barrido: motivo=%d", resultado);
+        ESP_LOGW(TAG, "configuracion invalida para iniciar barrido: %d", resultado);
         msg.type   = DISPLAY_MSG_SWEEP_START_ERROR;
         msg.motivo = resultado;
     }
 
     if (xQueueSend(queue_display, &msg, 0) != pdTRUE)
+    {
         ESP_LOGW(TAG, "queue_display llena, resultado no mostrado");
+    }
 }

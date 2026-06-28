@@ -60,9 +60,13 @@ static void update_label_raw(sweep_param_e param, const char *buf)
 {
     char tmp[16];
     if (buf[0] != '\0')
+    {
         snprintf(tmp, sizeof(tmp), "%s %s", buf, UNIT[param]);
+    }
     else
+    {
         snprintf(tmp, sizeof(tmp), "_ %s", UNIT[param]);
+    }
     lv_label_set_text(ui_uikbdisplay, tmp);
 }
 
@@ -97,16 +101,22 @@ static void kb_event_cb(lv_event_t *e)
     lv_obj_t *kb = lv_event_get_target(e);
     uint32_t btn_id = lv_buttonmatrix_get_selected_button(kb);
     if (btn_id == LV_BUTTONMATRIX_BUTTON_NONE)
+    {
         return;
+    }
     const char *txt = lv_buttonmatrix_get_button_text(kb, btn_id);
     if (!txt)
+    {
         return;
+    }
 
     if (strcmp(txt, LV_SYMBOL_BACKSPACE) == 0)
     {
         size_t len = strlen(buf_entrada);
         if (len > 0)
+        {
             buf_entrada[len - 1] = '\0';
+        }
         update_label_raw(param_activo, buf_entrada);
     }
     else if (strcmp(txt, LV_SYMBOL_OK) == 0)
@@ -119,7 +129,9 @@ static void kb_event_cb(lv_event_t *e)
                 .value = (uint32_t)strtoul(buf_entrada, NULL, 10),
             };
             if (xQueueSend(queue_menu_events, &ev, 0) != pdTRUE)
+            {
                 ESP_LOGW(TAG, "queue_menu_events llena, valor descartado");
+            }
         }
         kb_hide();
     }
@@ -128,7 +140,9 @@ static void kb_event_cb(lv_event_t *e)
         if (strlen(buf_entrada) < KB_BUF_LEN - 2)
         {
             if (!(strlen(buf_entrada) == 0 && strcmp(txt, "0") == 0))
+            {
                 strcat(buf_entrada, txt);
+            }
         }
         update_label_raw(param_activo, buf_entrada);
     }

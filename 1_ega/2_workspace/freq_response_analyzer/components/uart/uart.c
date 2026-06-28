@@ -113,7 +113,9 @@ static void procesar_set(const char *nombre_param, uint32_t value)
     for (size_t i = 0; i < CANT_PARAMS; i++)
     {
         if (strcmp(nombre_param, TABLA_PARAMS[i].nombre) != 0)
+        {
             continue;
+        }
 
         menu_event_msg_t ev = {
             .type  = MENU_EVT_CONFIG_SET,
@@ -121,7 +123,9 @@ static void procesar_set(const char *nombre_param, uint32_t value)
             .value = value,
         };
         if (xQueueSend(queue_menu_events, &ev, 0) != pdTRUE)
+        {
             ESP_LOGW(TAG, "queue_menu_events llena, valor descartado");
+        }
         return;
     }
 

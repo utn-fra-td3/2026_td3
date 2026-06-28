@@ -13,7 +13,9 @@ void ui_event_btn_start(lv_event_t * e)
         .type = MENU_EVT_SWEEP_START,
     };
     if (xQueueSend(queue_menu_events, &ev, 0) != pdTRUE)
+    {
         ESP_LOGW("UI", "queue_menu_events llena, pedido de inicio descartado");
+    }
 }
 
 void ui_event_btn_pausar(lv_event_t * e)

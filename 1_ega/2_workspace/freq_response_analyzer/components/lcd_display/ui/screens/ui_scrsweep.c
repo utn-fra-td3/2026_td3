@@ -177,7 +177,7 @@ void ui_scrsweep_screen_init(void)
     //lv_obj_remove_flag( ui_swchart, LV_OBJ_FLAG_SCROLLABLE );    //no chart-zoom in LVGL9 - Shouldn't it be forced to False?
     lv_chart_set_type(ui_swchart, LV_CHART_TYPE_LINE);
     lv_chart_set_point_count(ui_swchart, 200);
-    lv_chart_set_axis_range(ui_swchart, LV_CHART_AXIS_PRIMARY_Y, -80, 0);
+    lv_chart_set_axis_range(ui_swchart, LV_CHART_AXIS_PRIMARY_Y, -70, 10);
     lv_chart_set_axis_range(ui_swchart, LV_CHART_AXIS_SECONDARY_Y, -80, 10);
     lv_chart_set_div_line_count(ui_swchart, 5, 5);
     lv_obj_set_style_radius(ui_swchart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -200,8 +200,8 @@ void ui_scrsweep_screen_init(void)
     lv_obj_set_style_length(ui_swchart_Xaxis, 5, LV_PART_ITEMS);      //minor tick length
     lv_obj_set_style_length(ui_swchart_Xaxis, 10, LV_PART_INDICATOR);      //major tick length
     lv_scale_set_range(ui_swchart_Xaxis, 0, 5 > 0 ? 5 - 1 : 0);
-    lv_scale_set_total_tick_count(ui_swchart_Xaxis, (5 > 0 ? 5 - 1 : 0) * 1 + 1);
-    lv_scale_set_major_tick_every(ui_swchart_Xaxis, 1 >= 1 ? 1 : 1);
+    lv_scale_set_total_tick_count(ui_swchart_Xaxis, (5 > 0 ? 5 - 1 : 0) * 2 + 1);
+    lv_scale_set_major_tick_every(ui_swchart_Xaxis, 2 >= 1 ? 2 : 1);
     ui_swchart_Yaxis1 = lv_scale_create(ui_swchart);
     lv_scale_set_mode(ui_swchart_Yaxis1, LV_SCALE_MODE_VERTICAL_LEFT);
     lv_obj_set_size(ui_swchart_Yaxis1, 50, lv_pct(100));
@@ -211,11 +211,11 @@ void ui_scrsweep_screen_init(void)
     lv_obj_set_style_line_width(ui_swchart_Yaxis1, 0, LV_PART_MAIN);
     lv_obj_set_style_line_width(ui_swchart_Yaxis1, 1, LV_PART_ITEMS);
     lv_obj_set_style_line_width(ui_swchart_Yaxis1, 1, LV_PART_INDICATOR);
-    lv_obj_set_style_length(ui_swchart_Yaxis1, 10, LV_PART_ITEMS);   //minor tick length
+    lv_obj_set_style_length(ui_swchart_Yaxis1, 0, LV_PART_ITEMS);   //minor tick length
     lv_obj_set_style_length(ui_swchart_Yaxis1, 0, LV_PART_INDICATOR);   //major tick length
-    lv_scale_set_range(ui_swchart_Yaxis1,  -80, 0);
-    lv_scale_set_total_tick_count(ui_swchart_Yaxis1, (5 > 0 ? 5 - 1 : 0) * 5 + 1);
-    lv_scale_set_major_tick_every(ui_swchart_Yaxis1, 5 >= 1 ? 5 : 1);
+    lv_scale_set_range(ui_swchart_Yaxis1,  -70, 10);
+    lv_scale_set_total_tick_count(ui_swchart_Yaxis1, (5 > 0 ? 5 - 1 : 0) * 1 + 1);
+    lv_scale_set_major_tick_every(ui_swchart_Yaxis1, 1 >= 1 ? 1 : 1);
     ui_swchart_Yaxis2 = lv_scale_create(ui_swchart);
     lv_scale_set_mode(ui_swchart_Yaxis2, LV_SCALE_MODE_VERTICAL_RIGHT);
     lv_obj_set_size(ui_swchart_Yaxis2, 25, lv_pct(100));
@@ -236,12 +236,6 @@ void ui_scrsweep_screen_init(void)
 
     lv_obj_set_style_size(ui_swchart, 0, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
 
-    lv_obj_set_style_line_width(ui_swchart_Xaxis, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_line_width(ui_swchart_Yaxis1, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_line_width(ui_swchart_Yaxis2, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_line_width(ui_swchart_Xaxis, 0, LV_PART_ITEMS | LV_STATE_DEFAULT);
-    lv_obj_set_style_line_width(ui_swchart_Yaxis1, 0, LV_PART_ITEMS | LV_STATE_DEFAULT);
-    lv_obj_set_style_line_width(ui_swchart_Yaxis2, 0, LV_PART_ITEMS | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui_swchart_Xaxis, lv_color_hex(0xEAF2FA), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_swchart_Xaxis, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui_swchart_Yaxis1, lv_color_hex(0xEAF2FA), LV_PART_MAIN | LV_STATE_DEFAULT);
