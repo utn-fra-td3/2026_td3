@@ -134,6 +134,7 @@ static bool esperar_resume_o_cancelar()
     }
 }
 
+//atender pausa o cancelacion durante el tiempo de espera. true si se cancela, false si se espera todo el tiempo
 static bool atender_pausa_y_cancelar(uint32_t frec_hz, TickType_t ticks_espera)
 {
     sweep_cmd_msg_t cmd;

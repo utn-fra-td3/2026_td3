@@ -184,7 +184,9 @@ static void touch_init(void)
         .disp = disp_handle,
         .handle = tp_handle,
     };
+    esp_log_level_set("gpio", ESP_LOG_NONE); //ignorar error gpio: gpio_install_isr_service(533): GPIO isr service already installed
     lvgl_port_add_touch(&touch_cfg);
+    esp_log_level_set("gpio", ESP_LOG_ERROR);
 
     ESP_LOGI(TAG, "Touch CST816D inicializado");
 }

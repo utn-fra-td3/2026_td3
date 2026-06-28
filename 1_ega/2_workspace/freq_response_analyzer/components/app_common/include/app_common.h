@@ -131,6 +131,5 @@ extern QueueHandle_t queue_sweep_cmd;
 extern QueueHandle_t queue_display;
 extern QueueHandle_t queue_nvs_cmd;
 extern QueueHandle_t queue_uart_tx;
-extern SemaphoreHandle_t sem_btn_press;
 
 #endif // APP_COMMON_H
