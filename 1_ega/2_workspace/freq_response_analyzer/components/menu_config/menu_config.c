@@ -13,7 +13,7 @@ static sweep_config_t config = {
 };
 
 static const uint32_t MIN[] = {10, 11, 2, 1};
-static const uint32_t MAX[] = {99999, 100000, 512, 1000};
+static const uint32_t MAX[] = {99999, 100000, 512, 10000};
 
 static uint32_t *campo[] = {
     &config.frec_inicio, &config.frec_final,

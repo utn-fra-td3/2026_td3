@@ -31,8 +31,8 @@
 #define TOUCH_INT GPIO_NUM_46
 
 #define SWCHART_XAXIS_TICKS 5 // cantidad de ticks mayores del eje X
-#define SWCHART_DB_MIN -70    // escala fija del eje Y
-#define SWCHART_DB_MAX 10     // escala fija del eje Y
+#define SWCHART_DB_MIN -40    // escala fija del eje Y
+#define SWCHART_DB_MAX 3     // escala fija del eje Y
 
 // --- Variables privadas ---
 static const char *TAG = "lcd_display";
@@ -238,19 +238,27 @@ void task_lcd_display(void *pvParameters)
 
 static void mostrar_config_value(sweep_param_e param, uint32_t value)
 {
-    char tmp[16];
+    char tmp[20];
     bool es_frecuencia = (param == SWEEP_PARAM_FREC_INICIO || param == SWEEP_PARAM_FREC_FINAL);
     if (es_frecuencia && value >= 1000)
     {
         uint32_t khz_entero = value / 1000;
-        uint32_t khz_decimal = (value % 1000) / 100;
-        if (khz_decimal == 0)
+        uint32_t khz_resto = value % 1000;
+        if (khz_resto == 0)
         {
             snprintf(tmp, sizeof(tmp), "%lu kHz", khz_entero);
         }
+        else if (khz_resto % 100 == 0)
+        {
+            snprintf(tmp, sizeof(tmp), "%lu,%lu kHz", khz_entero, khz_resto / 100);
+        }
+        else if (khz_resto % 10 == 0)
+        {
+            snprintf(tmp, sizeof(tmp), "%lu,%02lu kHz", khz_entero, khz_resto / 10);
+        }
         else
         {
-            snprintf(tmp, sizeof(tmp), "%lu.%lu kHz", khz_entero, khz_decimal);
+            snprintf(tmp, sizeof(tmp), "%lu,%03lu kHz", khz_entero, khz_resto);
         }
     }
     else
@@ -285,7 +293,21 @@ static void swchart_actualizar_escala_frecuencia(uint32_t frec_inicio, uint32_t 
 
         if (frec >= 1000)
         {
-            snprintf(swchart_xaxis_buf[i], sizeof(swchart_xaxis_buf[i]), "%luk", (frec + 500) / 1000);
+            uint32_t khz_entero = frec / 1000;
+            uint32_t khz_decimal = ((frec % 1000) + 50) / 100;
+            if (khz_decimal >= 10)
+            {
+                khz_decimal = 0;
+                khz_entero++;
+            }
+            if (khz_decimal == 0)
+            {
+                snprintf(swchart_xaxis_buf[i], sizeof(swchart_xaxis_buf[i]), "%luk", khz_entero);
+            }
+            else
+            {
+                snprintf(swchart_xaxis_buf[i], sizeof(swchart_xaxis_buf[i]), "%lu,%luk", khz_entero, khz_decimal);
+            }
         }
         else
         {
