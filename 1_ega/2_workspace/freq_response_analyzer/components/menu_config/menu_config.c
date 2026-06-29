@@ -36,6 +36,8 @@ static void procesar_sweep_start(void);
 static sweep_start_result_e validar_config_completa(void);
 static void enviar_msg_display(display_msg_type_e type);
 static void enviar_cmd_sweep(sweep_cmd_e cmd_tipo);
+static void enviar_cmd_nvs_load(void);
+static void enviar_cmd_nvs_save(void);
 static void pausar(void);
 static void reanudar(void);
 static void cancelar(void);
@@ -47,6 +49,8 @@ static void finalizar_barrido(void);
 void task_menu_config(void *pvParameters)
 {
     menu_event_msg_t ev;
+
+    enviar_cmd_nvs_load();
 
     while (1)
     {
@@ -142,6 +146,7 @@ static void procesar_config_set(sweep_param_e param, uint32_t value)
             ESP_LOGW(TAG, "tiempo de asentamiento redondeado a multiplo de tick: %lu ms", value);
         }
         *campo[param] = value;
+        enviar_cmd_nvs_save();
     }
 
     // Se reenvia el valor nuevo o el anterior si estaba fuera de rango
@@ -232,6 +237,21 @@ static void enviar_cmd_sweep(sweep_cmd_e cmd_tipo)
 {
     sweep_cmd_msg_t cmd = {.cmd = cmd_tipo};
     xQueueSend(queue_sweep_cmd, &cmd, portMAX_DELAY);
+}
+
+static void enviar_cmd_nvs_load(void)
+{
+    nvs_cmd_msg_t cmd = {.cmd = NVS_CMD_LOAD};
+    xQueueSend(queue_nvs_cmd, &cmd, portMAX_DELAY);
+}
+
+static void enviar_cmd_nvs_save(void)
+{
+    nvs_cmd_msg_t cmd = {
+        .cmd = NVS_CMD_SAVE,
+        .config = config,
+    };
+    xQueueSend(queue_nvs_cmd, &cmd, portMAX_DELAY);
 }
 
 static void pausar(void)

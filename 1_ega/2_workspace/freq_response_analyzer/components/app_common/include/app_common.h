@@ -85,6 +85,12 @@ typedef enum
     SWEEP_CMD_RESUME
 } sweep_cmd_e;
 
+typedef enum
+{
+    NVS_CMD_SAVE,
+    NVS_CMD_LOAD
+} nvs_cmd_e;
+
 // --- Tipos de mensajes ---
 typedef struct
 {
@@ -119,6 +125,12 @@ typedef struct
     sweep_cmd_e cmd;
     sweep_config_t config;
 } sweep_cmd_msg_t;
+
+typedef struct
+{
+    nvs_cmd_e cmd;
+    sweep_config_t config;
+} nvs_cmd_msg_t;
 
 typedef struct
 {
