@@ -23,7 +23,7 @@
 // Declaración global de las vías de comunicación
 QueueHandle_t adc_queue = NULL;
 QueueHandle_t encoder_queue = NULL;
-SemaphoreHandle_t button_sem = NULL;
+QueueHandle_t button_queue = NULL;
 QueueHandle_t pid_cfg_queue = NULL; // Envía el modo/setpoint del SysManager al PID
 QueueHandle_t dac_queue = NULL;    // Envía el valor de 12 bits del PID al DAC
 SemaphoreHandle_t i2c_mutex = NULL; // mutex para que la EEPROM y el DAC no choquen
@@ -58,7 +58,7 @@ void app_main(void) {
     // creo recursos de FreeRTOS
     adc_queue       = xQueueCreate(1, sizeof(sensor_data_t)); 
     encoder_queue   = xQueueCreate(10, sizeof(int));
-    button_sem      = xSemaphoreCreateBinary();
+    button_queue    = xQueueCreate(5, sizeof(uint8_t));
     pid_cfg_queue   = xQueueCreate(1, sizeof(pid_config_t));  
     dac_queue       = xQueueCreate(2, sizeof(uint16_t));
     i2c_mutex       = xSemaphoreCreateMutex(); 
@@ -66,8 +66,8 @@ void app_main(void) {
     // Creación de la cola para transferir datos a la pantalla
     display_queue   = xQueueCreate(30, sizeof(ui_update_t));
 
-    // Agregamos 'display_queue' a la validación de seguridad
-    if (adc_queue && encoder_queue && button_sem && pid_cfg_queue && dac_queue && i2c_mutex && display_queue) {
+    
+    if (adc_queue && encoder_queue && button_queue && pid_cfg_queue && dac_queue && i2c_mutex && display_queue) {
         
         // Lanzamiento de Tareas
         

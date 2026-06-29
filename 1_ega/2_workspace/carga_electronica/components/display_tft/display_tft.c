@@ -29,8 +29,9 @@ static const char *TAG = "TFT_DISPLAY";
 #define PIN_NUM_LCD_CS          10
 #define PIN_NUM_BK_LIGHT        21  
 
-#define LCD_H_RES               240 
-#define LCD_V_RES               320 
+// --- CAMBIO A HORIZONTAL (APAISADO) ---
+#define LCD_H_RES               320 // Ancho (Antes 240)
+#define LCD_V_RES               240 // Alto  (Antes 320)
 
 extern QueueHandle_t display_queue;
 
@@ -45,7 +46,7 @@ static lv_style_t style_label_medium;
 
 
 static void display_init_hardware_and_ui(void) {
-    ESP_LOGI(TAG, "Inicializando Bus SPI y Panel LCD...");
+    ESP_LOGI(TAG, "Inicializando Bus SPI y Panel LCD (Modo Horizontal)...");
 
     gpio_reset_pin(PIN_NUM_BK_LIGHT);
     gpio_set_direction(PIN_NUM_BK_LIGHT, GPIO_MODE_OUTPUT);
@@ -83,12 +84,10 @@ static void display_init_hardware_and_ui(void) {
     ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
     
-    
-    // DESPEJAR LA PANTALLA
-    
-    ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel_handle, false));
-    // Invertimos el espejo horizontal (true) y mantenemos el vertical (false)
-    ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel_handle, false, true));
+    // --- ROTACIÓN DE HARDWARE A HORIZONTAL ---
+    ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel_handle, true)); // Acuesta los ejes
+    // Si la imagen sale al revés (patas para arriba), invierte estos true/false:
+    ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel_handle, true, false)); 
 
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
 
@@ -118,41 +117,44 @@ static void display_init_hardware_and_ui(void) {
         lv_style_set_text_font(&style_label_medium, &lv_font_montserrat_18);   
         lv_style_set_text_color(&style_label_medium, lv_color_hex(0x64748b)); 
 
+        // Fondo por defecto (Monitor)
         lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0x0f172a), 0);
 
         label_mode = lv_label_create(lv_scr_act());
         lv_label_set_text(label_mode, "MODO: CC");
         lv_obj_add_style(label_mode, &style_label_medium, 0); 
         lv_obj_set_style_text_color(label_mode, lv_color_hex(0x3b82f6), 0); 
-        lv_obj_align(label_mode, LV_ALIGN_TOP_MID, 0, 20);
+        lv_label_set_recolor(label_mode, true); // Permite tags HTML de colores
+        lv_obj_align(label_mode, LV_ALIGN_TOP_MID, 0, 10);
 
         label_voltage = lv_label_create(lv_scr_act());
         lv_label_set_text(label_voltage, "0.00 V");
         lv_obj_add_style(label_voltage, &style_big_bold, 0); 
-        lv_obj_align(label_voltage, LV_ALIGN_CENTER, 0, -40);
+        lv_obj_align(label_voltage, LV_ALIGN_CENTER, 0, -30);
 
         label_current = lv_label_create(lv_scr_act());
         lv_label_set_text(label_current, "0.00 A");
         lv_obj_add_style(label_current, &style_big_bold, 0); 
-        lv_obj_align(label_current, LV_ALIGN_CENTER, 0, 10);
+        lv_obj_align(label_current, LV_ALIGN_CENTER, 0, 20);
 
         label_setpoint = lv_label_create(lv_scr_act());
         lv_label_set_text(label_setpoint, "Objetivo: 0.00 A");
         lv_obj_add_style(label_setpoint, &style_label_medium, 0); 
         lv_obj_set_style_text_color(label_setpoint, lv_color_hex(0x10b981), 0); 
-        lv_obj_align(label_setpoint, LV_ALIGN_BOTTOM_MID, 0, -30);
+        lv_label_set_recolor(label_setpoint, true); // Permite tags HTML de colores
+        lv_obj_align(label_setpoint, LV_ALIGN_BOTTOM_MID, 0, -15);
+        lv_obj_add_flag(label_setpoint, LV_OBJ_FLAG_HIDDEN); // Oculto al inicio (Estado Monitor)
 
         lvgl_port_unlock();
     }
 }
 
 void task_display_update(void *pvParameters) {
-    
     display_init_hardware_and_ui();
     ui_update_t new_data;
     
-    // Buffers locales para formatear texto de forma segura antes de mandarlo a LVGL
-    char str_buffer[48];
+    // Aumentamos un poco el buffer para permitir las etiquetas HTML de colores
+    char str_buffer[64]; 
 
     ESP_LOGI(TAG, "Tarea gráfica OK");
 
@@ -161,9 +163,8 @@ void task_display_update(void *pvParameters) {
             
             if (lvgl_port_lock(pdMS_TO_TICKS(10))) {
                 
-                // FORMATEO SEGURO
+                // --- ACTUALIZACIÓN DE SENSORES ---
                 if (new_data.source == UI_MSG_FROM_ADC) {
-                    // Formateamos en un string
                     snprintf(str_buffer, sizeof(str_buffer), "%.2f V", new_data.voltage);
                     lv_label_set_text(label_voltage, str_buffer);
 
@@ -171,22 +172,63 @@ void task_display_update(void *pvParameters) {
                     lv_label_set_text(label_current, str_buffer);
                 }
                 
+                // --- ACTUALIZACIÓN DE INTERFAZ (MONITOR VS CONFIG) ---
                 else if (new_data.source == UI_MSG_FROM_SYSMAN) {
-                    if (new_data.mode == MODE_CC) {
-                        lv_label_set_text(label_mode, "MODO: CC");
+                    
+                    if (new_data.ui_state == 0) {
+                        // 1. ESTADO MONITOR (AZUL Y LIMPIO)
+                        lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0x0f172a), 0); // Azul oscuro
+                        lv_obj_add_flag(label_setpoint, LV_OBJ_FLAG_HIDDEN); // Ocultar objetivo
+                        
                         lv_obj_set_style_text_color(label_mode, lv_color_hex(0x3b82f6), 0);
+                        snprintf(str_buffer, sizeof(str_buffer), "MODO: %s", (new_data.mode == MODE_CC) ? "CC" : "CR");
+                        lv_label_set_text(label_mode, str_buffer);
+                    } 
+                    else {
+                        // 2. ESTADO CONFIGURACIÓN (OSCURO CON CURSORES)
+                        lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0x1c1917), 0); // Negro/Gris
+                        lv_obj_clear_flag(label_setpoint, LV_OBJ_FLAG_HIDDEN); // Mostrar objetivo
                         
-                        snprintf(str_buffer, sizeof(str_buffer), "Objetivo: %.2f A", new_data.setpoint);
-                        lv_label_set_text(label_setpoint, str_buffer);
-                    } else {
-                        lv_label_set_text(label_mode, "MODO: CR");
-                        lv_obj_set_style_text_color(label_mode, lv_color_hex(0xf59e0b), 0);
+                        // Formateo del Título (Cursor pos 0 = Edición de Modo)
+                        lv_obj_set_style_text_color(label_mode, lv_color_hex(0xf59e0b), 0); // Naranja base
+                        if (new_data.cursor_pos == 0) {
+                            snprintf(str_buffer, sizeof(str_buffer), "AJUSTE: #ff9900 %s#", (new_data.mode == MODE_CC) ? "CC" : "CR");
+                        } else {
+                            snprintf(str_buffer, sizeof(str_buffer), "AJUSTE: %s", (new_data.mode == MODE_CC) ? "CC" : "CR");
+                        }
+                        lv_label_set_text(label_mode, str_buffer);
+
+                        // Formateo del Setpoint (Cursor pos 1, 2, 3 = Edición de dígitos)
+                        if (new_data.mode == MODE_CC) {
+                            int u = (int)new_data.setpoint;
+                            int d = (int)(new_data.setpoint * 10) % 10;
+                            int c = (int)(new_data.setpoint * 100) % 10;
+
+                            if (new_data.cursor_pos == 1) 
+                                snprintf(str_buffer, sizeof(str_buffer), "Obj: #ff9900 %d#.%d%d A", u, d, c);
+                            else if (new_data.cursor_pos == 2) 
+                                snprintf(str_buffer, sizeof(str_buffer), "Obj: %d.#ff9900 %d#%d A", u, d, c);
+                            else if (new_data.cursor_pos == 3) 
+                                snprintf(str_buffer, sizeof(str_buffer), "Obj: %d.%d#ff9900 %d# A", u, d, c);
+                            else 
+                                snprintf(str_buffer, sizeof(str_buffer), "Obj: %d.%d%d A", u, d, c);
+                        } 
+                        else { // MODE CR
+                            int dec = (int)new_data.setpoint / 10;
+                            int uni = (int)new_data.setpoint % 10;
+
+                            if (new_data.cursor_pos == 1) 
+                                snprintf(str_buffer, sizeof(str_buffer), "Obj: #ff9900 %d#%d Ohm", dec, uni);
+                            else if (new_data.cursor_pos == 2) 
+                                snprintf(str_buffer, sizeof(str_buffer), "Obj: %d#ff9900 %d# Ohm", dec, uni);
+                            else 
+                                snprintf(str_buffer, sizeof(str_buffer), "Obj: %d%d Ohm", dec, uni);
+                        }
                         
-                        snprintf(str_buffer, sizeof(str_buffer), "Objetivo: %.0f Ohm", new_data.setpoint);
+                        lv_obj_set_style_text_color(label_setpoint, lv_color_hex(0x94a3b8), 0); // Gris claro base
                         lv_label_set_text(label_setpoint, str_buffer);
                     }
                 }
-
                 lvgl_port_unlock();
             }
         }

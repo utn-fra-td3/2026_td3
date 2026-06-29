@@ -13,14 +13,14 @@ typedef enum {
 // Estructura del paquete
 typedef struct {
     ui_msg_source_t source;
-    
-    // Datos si el source es ADC
     float voltage;
     float current;
-    
-    // Datos si el source es SYSMAN
     system_mode_t mode;
     float setpoint;
+    
+    // --- VARIABLES VITALES PARA EL MENÚ ---
+    uint8_t ui_state;   // 0 o 1
+    uint8_t cursor_pos; // 0 a 3
 } ui_update_t;
 
 void task_display_update(void *pvParameters);
