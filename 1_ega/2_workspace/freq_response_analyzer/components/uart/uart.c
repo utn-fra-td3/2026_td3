@@ -122,10 +122,7 @@ static void procesar_set(const char *nombre_param, uint32_t value)
             .param = TABLA_PARAMS[i].param,
             .value = value,
         };
-        if (xQueueSend(queue_menu_events, &ev, 0) != pdTRUE)
-        {
-            ESP_LOGW(TAG, "queue_menu_events llena, valor descartado");
-        }
+        xQueueSend(queue_menu_events, &ev, portMAX_DELAY);
         return;
     }
 

@@ -188,27 +188,19 @@ static void ejecutar_barrido(const sweep_config_t *config)
             .freq_hz = frec_hz,
             .db = db,
         };
-        if (xQueueSend(queue_display, &msg_disp, 0) != pdTRUE)
-        {
-            ESP_LOGW(TAG, "queue_display llena, punto no mostrado");
-        }
+        xQueueSend(queue_display, &msg_disp, portMAX_DELAY);
 
         uart_tx_msg_t msg_uart = {
             .freq_hz = frec_hz,
             .db = db,
         };
-        if (xQueueSend(queue_uart_tx, &msg_uart, 0) != pdTRUE)
-        {
-            ESP_LOGW(TAG, "queue_uart_tx llena, punto no enviado");
-        }
+        xQueueSend(queue_uart_tx, &msg_uart, portMAX_DELAY);
     }
 
     ad9833_disable_output();
     ESP_LOGI(TAG, "barrido finalizado");
 
     menu_event_msg_t ev = {.type = MENU_EVT_SWEEP_FINISHED};
-    if (xQueueSend(queue_menu_events, &ev, 0) != pdTRUE)
-    {
-        ESP_LOGW(TAG, "queue_menu_events llena, fin de barrido no informado");
-    }
+    xQueueSend(queue_menu_events, &ev, portMAX_DELAY);
+ 
 }

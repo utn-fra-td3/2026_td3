@@ -4,7 +4,6 @@
 // Project name: freq_response_analyzer
 
 #include "ui.h"
-#include "esp_log.h"
 #include "app_common.h"
 
 void ui_event_btn_start(lv_event_t *e)
@@ -12,10 +11,7 @@ void ui_event_btn_start(lv_event_t *e)
     menu_event_msg_t ev = {
         .type = MENU_EVT_BTN_START,
     };
-    if (xQueueSend(queue_menu_events, &ev, 0) != pdTRUE)
-    {
-        ESP_LOGW("UI", "queue_menu_events llena, pedido de inicio descartado");
-    }
+    xQueueSend(queue_menu_events, &ev, portMAX_DELAY);
 }
 
 void ui_event_btn_pausar(lv_event_t *e)
@@ -23,11 +19,7 @@ void ui_event_btn_pausar(lv_event_t *e)
     menu_event_msg_t ev = {
         .type = MENU_EVT_BTN_PAUSE,
     };
-    if (xQueueSend(queue_menu_events, &ev, 0) != pdTRUE)
-    {
-        ESP_LOGW("UI", "queue_menu_events llena, pedido de pausar/reanudar descartado");
-        return;
-    }
+    xQueueSend(queue_menu_events, &ev, portMAX_DELAY);
 }
 
 void ui_event_cfg_popup_ok(lv_event_t *e)
@@ -40,8 +32,5 @@ void ui_event_btn_cancelar(lv_event_t *e)
     menu_event_msg_t ev = {
         .type = MENU_EVT_BTN_CANCEL,
     };
-    if (xQueueSend(queue_menu_events, &ev, 0) != pdTRUE)
-    {
-        ESP_LOGW("UI", "queue_menu_events llena, pedido de cancelar/volver a configurar descartado");
-    }
+    xQueueSend(queue_menu_events, &ev, portMAX_DELAY);
 }

@@ -128,10 +128,7 @@ static void kb_event_cb(lv_event_t *e)
                 .param = param_activo,
                 .value = (uint32_t)strtoul(buf_entrada, NULL, 10),
             };
-            if (xQueueSend(queue_menu_events, &ev, 0) != pdTRUE)
-            {
-                ESP_LOGW(TAG, "queue_menu_events llena, valor descartado");
-            }
+            xQueueSend(queue_menu_events, &ev, portMAX_DELAY);
         }
         kb_hide();
     }

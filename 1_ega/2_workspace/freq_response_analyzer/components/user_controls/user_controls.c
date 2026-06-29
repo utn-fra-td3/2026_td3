@@ -84,10 +84,7 @@ static void atender_boton(gpio_num_t pin, menu_evt_e evento)
     if (gpio_get_level(pin) == 0)
     {
         menu_event_msg_t ev = {.type = evento};
-        if (xQueueSend(queue_menu_events, &ev, 0) != pdTRUE)
-        {
-            ESP_LOGW(TAG, "queue_menu_events llena, pulsacion descartada");
-        }
+        xQueueSend(queue_menu_events, &ev, portMAX_DELAY);
         ESP_LOGI(TAG, "Boton GPIO%d pulsado", pin);
     }
     gpio_intr_enable(pin);
