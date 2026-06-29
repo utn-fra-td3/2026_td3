@@ -36,6 +36,7 @@ static const comando_param_t TABLA_PARAMS[] = {
 static void uart_init(void);
 static void procesar_comando(const char *cmd);
 static void procesar_set(const char *nombre_param, uint32_t value);
+static void enviar_evento_menu(menu_evt_e evento);
 static void enviar_uart(const char *msg, size_t len);
 static void procesar_queue_uart_tx(void);
 static void formatear_uart_tx(const uart_tx_msg_t *tx, char *buf, size_t buf_len, int *len);
@@ -105,6 +106,24 @@ static void procesar_comando(const char *cmd)
         return;
     }
 
+    if (strcmp(cmd, "start") == 0)
+    {
+        enviar_evento_menu(MENU_EVT_BTN_START);
+        return;
+    }
+
+    if (strcmp(cmd, "pause") == 0)
+    {
+        enviar_evento_menu(MENU_EVT_BTN_PAUSE);
+        return;
+    }
+
+    if (strcmp(cmd, "cancel") == 0)
+    {
+        enviar_evento_menu(MENU_EVT_BTN_CANCEL);
+        return;
+    }
+
     ESP_LOGW(TAG, "comando no reconocido: %s", cmd);
 }
 
@@ -127,6 +146,12 @@ static void procesar_set(const char *nombre_param, uint32_t value)
     }
 
     ESP_LOGW(TAG, "parametro desconocido: %s", nombre_param);
+}
+
+static void enviar_evento_menu(menu_evt_e evento)
+{
+    menu_event_msg_t ev = {.type = evento};
+    xQueueSend(queue_menu_events, &ev, portMAX_DELAY);
 }
 
 static void enviar_uart(const char *msg, size_t len)

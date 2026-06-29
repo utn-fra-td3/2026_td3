@@ -66,6 +66,10 @@ void task_menu_config(void *pvParameters)
                 {
                     procesar_sweep_start();
                 }
+                else if (estado_barrido == BARRIDO_PAUSADO)
+                {
+                    reanudar();
+                }
                 break;
             case MENU_EVT_BTN_PAUSE:
                 if (estado_barrido == BARRIDO_INICIADO)
