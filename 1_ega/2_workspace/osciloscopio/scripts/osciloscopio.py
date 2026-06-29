@@ -7,7 +7,7 @@ from pyqtgraph.Qt import QtWidgets, QtCore
 # ==========================================
 # CONFIGURACIÓN DEL SISTEMA
 # ==========================================
-PUERTO = 'COM11' # <-- REVISAR Y CAMBIAR AL COM DE TU ESP32
+PUERTO = 'COM3' # <-- REVISAR Y CAMBIAR AL COM DE TU ESP32
 BAUDIOS = 921600
 PUNTOS_PANTALLA = 400
 V_REF = 3.3 
