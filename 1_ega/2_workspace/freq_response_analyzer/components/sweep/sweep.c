@@ -134,7 +134,7 @@ static bool esperar_resume_o_cancelar()
     }
 }
 
-//atender pausa o cancelacion durante el tiempo de espera. true si se cancela, false si se espera todo el tiempo
+// atender pausa o cancelacion durante el tiempo de espera. true si se cancela, false si se espera todo el tiempo
 static bool atender_pausa_y_cancelar(uint32_t frec_hz, TickType_t ticks_espera)
 {
     sweep_cmd_msg_t cmd;
@@ -173,15 +173,13 @@ static void ejecutar_barrido(const sweep_config_t *config)
             db = db_anterior; // Se mantiene el valor anterior
         }
         else
-        {
-            frec_anterior = frec_hz;
+        {            
             if (medir_punto(frec_hz, config->tiempo, &db))
             {
                 ESP_LOGI(TAG, "barrido cancelado");
                 break;
             }
-        }
-        db_anterior = db;
+        }        
 
         display_msg_t msg_disp = {
             .type = DISPLAY_MSG_SWEEP_POINT,
@@ -190,11 +188,17 @@ static void ejecutar_barrido(const sweep_config_t *config)
         };
         xQueueSend(queue_display, &msg_disp, portMAX_DELAY);
 
-        uart_tx_msg_t msg_uart = {
-            .freq_hz = frec_hz,
-            .db = db,
-        };
-        xQueueSend(queue_uart_tx, &msg_uart, portMAX_DELAY);
+        if (frec_hz != frec_anterior) //no enviar puntos repetidos por UART
+        {
+            uart_tx_msg_t msg_uart = {
+                .freq_hz = frec_hz,
+                .db = db,
+            };
+            xQueueSend(queue_uart_tx, &msg_uart, portMAX_DELAY);
+        }
+
+        frec_anterior = frec_hz;
+        db_anterior = db;
     }
 
     ad9833_disable_output();
@@ -202,5 +206,4 @@ static void ejecutar_barrido(const sweep_config_t *config)
 
     menu_event_msg_t ev = {.type = MENU_EVT_SWEEP_FINISHED};
     xQueueSend(queue_menu_events, &ev, portMAX_DELAY);
- 
 }
