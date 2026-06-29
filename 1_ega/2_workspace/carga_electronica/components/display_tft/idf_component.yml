@@ -1,0 +1,4 @@
+dependencies:
+  jbrilha/esp_lcd_st7789: "^1.0.0"
+  lvgl/lvgl: "^8.3.0"
+  espressif/esp_lvgl_port: "^2.0.0"
