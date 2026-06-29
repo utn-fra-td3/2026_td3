@@ -56,11 +56,12 @@ static lv_obj_t **val_labels_config[] = {
 
 static const char *TEXTO_ERROR_SWEEP[] = {
     "", // SWEEP_START_OK, no se usa
-    "Frecuencia inicial fuera de rango",
-    "Frecuencia final fuera de rango",
+    "Frecuencia inicial fuera de rango (10 - 99999 Hz)",
+    "Frecuencia final fuera de rango (11 - 100000 Hz)",
     "La frecuencia inicial debe ser menor que la final",
-    "Cantidad de puntos fuera de rango",
-    "Tiempo de asentamiento insuficiente para la frecuencia inicial",
+    "Cantidad de puntos fuera de rango (2 - 512 pts)",
+    "Tiempo de asentamiento muy bajo para la frecuencia inicial",
+    "Tiempo de asentamiento fuera de rango (10 - 10000 ms)",
 };
 
 // --- Prototipos privados ---
@@ -225,7 +226,7 @@ void task_lcd_display(void *pvParameters)
                 swchart_actualizar_escala_frecuencia(msg.frec_inicio, msg.frec_final);
                 swchart_reiniciar(msg.puntos);
                 break;
-            case DISPLAY_MSG_SWEEP_START_ERROR:
+            case DISPLAY_MSG_SWEEP_CONFIG_ERROR:
                 mostrar_popup_error(msg.motivo);
                 break;
             case DISPLAY_MSG_SWEEP_POINT:

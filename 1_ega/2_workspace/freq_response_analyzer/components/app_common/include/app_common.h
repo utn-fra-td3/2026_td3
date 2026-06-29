@@ -57,7 +57,7 @@ typedef enum
 {
     DISPLAY_MSG_CONFIG_VALUE,      // valor de configuracion ya validado por task_menu_config, listo para mostrar
     DISPLAY_MSG_SWEEP_START_OK,    // configuracion de conjunto valida, pasar a la pantalla de barrido
-    DISPLAY_MSG_SWEEP_START_ERROR, // configuracion de conjunto invalida, mostrar popup con el motivo
+    DISPLAY_MSG_SWEEP_CONFIG_ERROR, // valor o configuracion de conjunto invalida, mostrar popup con el motivo
     DISPLAY_MSG_SWEEP_POINT,       // punto medido del barrido (freq_hz + db), task_sweep
     DISPLAY_MSG_SHOW_SWEEP,        // mostrar pantalla de barrido
     DISPLAY_MSG_SHOW_CONFIG,       // mostrar pantalla de configuracion
@@ -72,8 +72,9 @@ typedef enum
     SWEEP_START_ERR_FSTART_RANGE,   // f_start fuera de rango
     SWEEP_START_ERR_FSTOP_RANGE,    // f_stop fuera de rango
     SWEEP_START_ERR_FRANGE,         // f_start no es menor que f_stop
-    SWEEP_START_ERR_POINTS_RANGE,   // n_points fuera de rango
-    SWEEP_START_ERR_SETTLE_TIME_LOW // tiempo de asentamiento insuficiente para la frecuencia inicial
+    SWEEP_START_ERR_POINTS_RANGE,     // n_points fuera de rango
+    SWEEP_START_ERR_SETTLE_TIME_LOW,  // tiempo de asentamiento insuficiente para la frecuencia inicial
+    SWEEP_START_ERR_SETTLE_TIME_RANGE // tiempo de asentamiento fuera de rango
 } sweep_start_result_e;
 
 typedef enum

@@ -23,7 +23,7 @@ static sweep_config_t config = {
     .tiempo = 30,
 };
 
-static const uint32_t MIN[] = {10, 11, 2, 1};
+static const uint32_t MIN[] = {10, 11, 2, 10};
 static const uint32_t MAX[] = {99999, 100000, 512, 10000};
 
 static uint32_t *campo[] = {
@@ -123,6 +123,15 @@ static void procesar_config_set(sweep_param_e param, uint32_t value)
     if (value < MIN[param] || value > MAX[param])
     {
         ESP_LOGW(TAG, "valor fuera de rango: param=%d value=%lu, se mantiene el valor anterior", param, value);
+
+        display_msg_t msg_error = {
+            .type = DISPLAY_MSG_SWEEP_CONFIG_ERROR,
+            .motivo = (param == SWEEP_PARAM_FREC_INICIO) ? SWEEP_START_ERR_FSTART_RANGE :
+                      (param == SWEEP_PARAM_FREC_FINAL) ? SWEEP_START_ERR_FSTOP_RANGE :
+                      (param == SWEEP_PARAM_PUNTOS) ? SWEEP_START_ERR_POINTS_RANGE :
+                      SWEEP_START_ERR_SETTLE_TIME_RANGE,
+        };
+        xQueueSend(queue_display, &msg_error, portMAX_DELAY);
     }
     else
     {
@@ -141,10 +150,7 @@ static void procesar_config_set(sweep_param_e param, uint32_t value)
         .param = param,
         .value = *campo[param],
     };
-    if (xQueueSend(queue_display, &msg, 0) != pdTRUE)
-    {
-        ESP_LOGW(TAG, "queue_display llena, valor no mostrado");
-    }
+    xQueueSend(queue_display, &msg, portMAX_DELAY);
 }
 
 static sweep_start_result_e validar_config_completa(void)
@@ -192,10 +198,7 @@ static void procesar_sweep_start(void)
             .cmd = SWEEP_CMD_START,
             .config = config,
         };
-        if (xQueueSend(queue_sweep_cmd, &cmd, 0) != pdTRUE)
-        {
-            ESP_LOGW(TAG, "queue_sweep_cmd llena, no se pudo iniciar el barrido");
-        }
+        xQueueSend(queue_sweep_cmd, &cmd, portMAX_DELAY);
 
         estado_barrido = BARRIDO_INICIADO;
 
@@ -207,14 +210,11 @@ static void procesar_sweep_start(void)
     else
     {
         ESP_LOGW(TAG, "configuracion invalida para iniciar barrido: %d", resultado);
-        msg.type = DISPLAY_MSG_SWEEP_START_ERROR;
+        msg.type = DISPLAY_MSG_SWEEP_CONFIG_ERROR;
         msg.motivo = resultado;
     }
 
-    if (xQueueSend(queue_display, &msg, 0) != pdTRUE)
-    {
-        ESP_LOGW(TAG, "queue_display llena, resultado no mostrado");
-    }
+    xQueueSend(queue_display, &msg, portMAX_DELAY);
 
     if (resultado == SWEEP_START_OK)
     {
@@ -225,19 +225,13 @@ static void procesar_sweep_start(void)
 static void enviar_msg_display(display_msg_type_e type)
 {
     display_msg_t msg = {.type = type};
-    if (xQueueSend(queue_display, &msg, 0) != pdTRUE)
-    {
-        ESP_LOGW(TAG, "queue_display llena, mensaje %d no mostrado", type);
-    }
+    xQueueSend(queue_display, &msg, portMAX_DELAY);
 }
 
 static void enviar_cmd_sweep(sweep_cmd_e cmd_tipo)
 {
     sweep_cmd_msg_t cmd = {.cmd = cmd_tipo};
-    if (xQueueSend(queue_sweep_cmd, &cmd, 0) != pdTRUE)
-    {
-        ESP_LOGW(TAG, "queue_sweep_cmd llena, comando %d no enviado", cmd_tipo);
-    }
+    xQueueSend(queue_sweep_cmd, &cmd, portMAX_DELAY);
 }
 
 static void pausar(void)
