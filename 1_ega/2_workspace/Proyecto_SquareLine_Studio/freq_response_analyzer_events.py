@@ -42,3 +42,11 @@ def ui_event_btn_start(event_struct):
 def ui_event_cfg_popup_ok(event_struct):
     return
 
+
+def ui_event_btn_detener(event_struct):
+    return
+
+
+def ui_event_btn_cancelar(event_struct):
+    return
+

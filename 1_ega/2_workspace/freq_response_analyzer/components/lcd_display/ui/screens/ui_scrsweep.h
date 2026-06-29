@@ -27,13 +27,10 @@ extern lv_obj_t * ui_swchart_Yaxis2;
 extern lv_obj_t * ui_swfooter;
 extern void ui_event_swbtnpausar(lv_event_t * e);
 extern lv_obj_t * ui_swbtnpausar;
-extern lv_obj_t * ui_Label1;
-extern void ui_event_swbtnconfig(lv_event_t * e);
-extern lv_obj_t * ui_swbtnconfig;
-extern lv_obj_t * ui_Label2;
-extern void ui_event_swbtnreinicio(lv_event_t * e);
-extern lv_obj_t * ui_swbtnreinicio;
-extern lv_obj_t * ui_Label3;
+extern lv_obj_t * ui_lblbtnpausar;
+extern void ui_event_swbtncancelar(lv_event_t * e);
+extern lv_obj_t * ui_swbtncancelar;
+extern lv_obj_t * ui_lblbtncancelar;
 // CUSTOM VARIABLES
 
 #ifdef __cplusplus

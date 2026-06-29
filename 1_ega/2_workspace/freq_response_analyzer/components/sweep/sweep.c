@@ -5,12 +5,14 @@
 #include "esp_log.h"
 #include "driver/gpio.h"
 #include <math.h>
+#include <stdbool.h>
 
 // --- Defines privados ---
-#define SWEEP_PIN_CTRL_1     GPIO_NUM_6
-#define SWEEP_PIN_CTRL_2     GPIO_NUM_16
-#define SWEEP_RESET_PULSO_MS 10  // tiempo en alto de los mosfet 2N7000; CONFIG_FREERTOS_HZ=100 (tick=10ms) vTaskDelay no puede pedir menos de 10ms
-#define SWEEP_MUESTRAS       10 // cantidad de lecturas de ADC promediadas por punto
+#define SWEEP_RST_VIN GPIO_NUM_6
+#define SWEEP_RST_VO GPIO_NUM_16
+#define SWEEP_RESET_PULSO_MS 10
+#define SWEEP_MUESTRAS 10  // cantidad de lecturas de ADC por frecuencia
+#define SWEEP_VIN_MIN_MV 1 // minimo valor aceptable del ADC, evita log10(0) con vin = 0
 
 // --- Variables privadas ---
 static const char *TAG = "sweep";
@@ -19,7 +21,9 @@ static const char *TAG = "sweep";
 static void inicializar_gpio(void);
 static void resetear_detectores_pico(void);
 static uint32_t calcular_frecuencia(uint32_t frec_inicio, uint32_t frec_final, uint32_t puntos, uint32_t i);
-static float medir_punto(uint32_t frec_hz, uint32_t tiempo_asentamiento_ms);
+static bool medir_punto(uint32_t frec_hz, uint32_t tiempo_asentamiento_ms, float *db);
+static bool esperar_resume_o_cancelar(void);
+static bool atender_pausa_y_cancelar(uint32_t frec_hz, TickType_t ticks_espera);
 static void ejecutar_barrido(const sweep_config_t *config);
 
 // --- Funciones ---
@@ -37,60 +41,120 @@ void task_sweep(void *pvParameters)
         if (xQueueReceive(queue_sweep_cmd, &cmd, portMAX_DELAY) == pdTRUE)
         {
             if (cmd.cmd == SWEEP_CMD_START)
+            {
                 ejecutar_barrido(&cmd.config);
+            }
         }
     }
 }
 
 static void inicializar_gpio(void)
 {
-    gpio_set_direction(SWEEP_PIN_CTRL_1, GPIO_MODE_OUTPUT);
-    gpio_set_direction(SWEEP_PIN_CTRL_2, GPIO_MODE_OUTPUT);
-    gpio_set_level(SWEEP_PIN_CTRL_1, 0);
-    gpio_set_level(SWEEP_PIN_CTRL_2, 0);
+    gpio_set_direction(SWEEP_RST_VIN, GPIO_MODE_OUTPUT);
+    gpio_set_direction(SWEEP_RST_VO, GPIO_MODE_OUTPUT);
+    gpio_set_level(SWEEP_RST_VIN, 0);
+    gpio_set_level(SWEEP_RST_VO, 0);
 }
 
 static void resetear_detectores_pico(void)
 {
-    gpio_set_level(SWEEP_PIN_CTRL_1, 1);
-    gpio_set_level(SWEEP_PIN_CTRL_2, 1);
+    gpio_set_level(SWEEP_RST_VIN, 1);
+    gpio_set_level(SWEEP_RST_VO, 1);
     vTaskDelay(pdMS_TO_TICKS(SWEEP_RESET_PULSO_MS));
-    gpio_set_level(SWEEP_PIN_CTRL_1, 0);
-    gpio_set_level(SWEEP_PIN_CTRL_2, 0);
+    gpio_set_level(SWEEP_RST_VIN, 0);
+    gpio_set_level(SWEEP_RST_VO, 0);
 }
 
-// paso logaritmico: f[i] = frec_inicio * (frec_final/frec_inicio)^(i/(puntos-1))
+// paso logaritmico
 static uint32_t calcular_frecuencia(uint32_t frec_inicio, uint32_t frec_final, uint32_t puntos, uint32_t i)
 {
-    if (puntos <= 1 || i == 0)
+    if (puntos <= 1)
+    {
         return frec_inicio;
+    }
     if (i >= puntos - 1)
+    {
         return frec_final;
+    }
 
-    double exponente = (double)i / (double)(puntos - 1);
-    double frec = frec_inicio * pow((double)frec_final / (double)frec_inicio, exponente);
-    return (uint32_t)(frec + 0.5);
+    float exponente = (float)i / (float)(puntos - 1);
+    float frec = frec_inicio * powf((float)frec_final / (float)frec_inicio, exponente);
+    return (uint32_t)(frec + 0.5f);
 }
 
-static float medir_punto(uint32_t frec_hz, uint32_t tiempo_asentamiento_ms)
+static bool medir_punto(uint32_t frec_hz, uint32_t tiempo_asentamiento_ms, float *db)
 {
     ad9833_set_freq(frec_hz);
-    ad9833_disable_output();    // apagar DDS durante el reset, sin señal compitiendo con la descarga
+    ad9833_disable_output(); // apagar DDS antes del reset del detector de pico
     resetear_detectores_pico();
-    ad9833_enable_output();
-    vTaskDelay(pdMS_TO_TICKS(tiempo_asentamiento_ms));
+    ad9833_enable_output(); // encender DDS y espero tiempo de asentamiento
+
+    // Esperar tiempo de asentamiento mientras reviso comandos de pausa o cancelacion
+    if (atender_pausa_y_cancelar(frec_hz, pdMS_TO_TICKS(tiempo_asentamiento_ms)))
+    {
+        return true; // cancelado durante el asentamiento
+    }
 
     int suma_vin = 0;
     int suma_vout = 0;
     for (int i = 0; i < SWEEP_MUESTRAS; i++)
     {
-        suma_vin += adc_read_vin_mv();   // pico de la respuesta del DUT
+        int vin = adc_read_vin_mv(); // pico de la respuesta del DUT
+        if (vin < SWEEP_VIN_MIN_MV)
+        {
+            vin = SWEEP_VIN_MIN_MV; // por debajo de esto el ADC no puede distinguir la señal del piso de ruido
+        }
+        suma_vin += vin;
         suma_vout += adc_read_vout_mv(); // pico de la excitacion del DUT
     }
     float vin_prom = (float)suma_vin / SWEEP_MUESTRAS;
     float vout_prom = (float)suma_vout / SWEEP_MUESTRAS;
 
-    return 20.0f * log10f(vin_prom / vout_prom); // transferencia = respuesta/excitacion = vin/vout
+    *db = 20.0f * log10f(vin_prom / vout_prom); // transferencia = respuesta/excitacion = vin/vout
+    return false;
+}
+
+// Esperar comando para reanudar o cancelar el barrido. true si se cancela, false si se reanuda
+static bool esperar_resume_o_cancelar()
+{
+    sweep_cmd_msg_t cmd;
+    while (1)
+    {
+        xQueueReceive(queue_sweep_cmd, &cmd, portMAX_DELAY);
+
+        if (cmd.cmd == SWEEP_CMD_RESUME)
+        {
+            ESP_LOGI(TAG, "barrido reanudado");
+            return false;
+        }
+        if (cmd.cmd == SWEEP_CMD_CANCEL)
+        {
+            return true;
+        }
+    }
+}
+
+// atender pausa o cancelacion durante el tiempo de espera. true si se cancela, false si se espera todo el tiempo
+static bool atender_pausa_y_cancelar(uint32_t frec_hz, TickType_t ticks_espera)
+{
+    sweep_cmd_msg_t cmd;
+    if (xQueueReceive(queue_sweep_cmd, &cmd, ticks_espera) != pdTRUE)
+    {
+        return false;
+    }
+
+    if (cmd.cmd == SWEEP_CMD_CANCEL)
+    {
+        return true;
+    }
+
+    if (cmd.cmd == SWEEP_CMD_PAUSE)
+    {
+        ESP_LOGI(TAG, "barrido pausado en %lu Hz", frec_hz);
+        return esperar_resume_o_cancelar();
+    }
+
+    return false;
 }
 
 static void ejecutar_barrido(const sweep_config_t *config)
@@ -104,38 +168,42 @@ static void ejecutar_barrido(const sweep_config_t *config)
         uint32_t frec_hz = calcular_frecuencia(config->frec_inicio, config->frec_final, config->puntos, i);
         float db;
 
-        if (i > 0 && frec_hz == frec_anterior)
+        if (frec_hz == frec_anterior)
         {
-            db = db_anterior; // paso log redondeado a la misma frecuencia entera, no remedir
+            db = db_anterior; // Se mantiene el valor anterior
         }
         else
-        {
-            frec_anterior = frec_hz;
-            db = medir_punto(frec_hz, config->tiempo);
-            if (isinf(db))
+        {            
+            if (medir_punto(frec_hz, config->tiempo, &db))
             {
-                ESP_LOGW(TAG, "vin sin resolucion en %lu Hz (db = -inf), se mantiene el valor anterior", frec_hz);
-                db = db_anterior;
+                ESP_LOGI(TAG, "barrido cancelado");
+                break;
             }
-        }
-        db_anterior = db;
+        }        
 
         display_msg_t msg_disp = {
-            .type    = DISPLAY_MSG_SWEEP_POINT,
+            .type = DISPLAY_MSG_SWEEP_POINT,
             .freq_hz = frec_hz,
-            .db      = db,
+            .db = db,
         };
-        if (xQueueSend(queue_display, &msg_disp, 0) != pdTRUE)
-            ESP_LOGW(TAG, "queue_display llena, punto no mostrado");
+        xQueueSend(queue_display, &msg_disp, portMAX_DELAY);
 
-        uart_tx_msg_t msg_uart = {
-            .freq_hz = frec_hz,
-            .db      = db,
-        };
-        if (xQueueSend(queue_uart_tx, &msg_uart, 0) != pdTRUE)
-            ESP_LOGW(TAG, "queue_uart_tx llena, punto no enviado");
+        if (frec_hz != frec_anterior) //no enviar puntos repetidos por UART
+        {
+            uart_tx_msg_t msg_uart = {
+                .freq_hz = frec_hz,
+                .db = db,
+            };
+            xQueueSend(queue_uart_tx, &msg_uart, portMAX_DELAY);
+        }
+
+        frec_anterior = frec_hz;
+        db_anterior = db;
     }
 
     ad9833_disable_output();
     ESP_LOGI(TAG, "barrido finalizado");
+
+    menu_event_msg_t ev = {.type = MENU_EVT_SWEEP_FINISHED};
+    xQueueSend(queue_menu_events, &ev, portMAX_DELAY);
 }

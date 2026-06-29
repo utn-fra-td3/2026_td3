@@ -31,7 +31,8 @@
 #define TOUCH_INT GPIO_NUM_46
 
 #define SWCHART_XAXIS_TICKS 5 // cantidad de ticks mayores del eje X
-#define SWCHART_DB_PISO -80 // minimo real medible, el eje Y nunca se expande mas abajo de esto
+#define SWCHART_DB_MIN -40    // escala fija del eje Y
+#define SWCHART_DB_MAX 3     // escala fija del eje Y
 
 // --- Variables privadas ---
 static const char *TAG = "lcd_display";
@@ -42,11 +43,9 @@ static lv_disp_t *disp_handle = NULL;
 static i2c_master_bus_handle_t i2c_bus = NULL;
 static esp_lcd_touch_handle_t tp_handle = NULL;
 static lv_chart_series_t *swchart_serie = NULL;
+static lv_anim_t *swindicator_anim = NULL;
 static uint16_t swchart_idx = 0;
-static int32_t swchart_db_min = 0;
-static int32_t swchart_db_max = 0;
-static bool swchart_tiene_datos = false;
-static char swchart_xaxis_buf[SWCHART_XAXIS_TICKS][8];
+static char swchart_xaxis_buf[SWCHART_XAXIS_TICKS][12];
 static const char *swchart_xaxis_txt_src[SWCHART_XAXIS_TICKS + 1];
 
 static const char *UNIT_CONFIG[] = {"Hz", "Hz", "pts", "ms"};
@@ -60,8 +59,9 @@ static const char *TEXTO_ERROR_SWEEP[] = {
     "Frecuencia inicial fuera de rango (10 - 99999 Hz)",
     "Frecuencia final fuera de rango (11 - 100000 Hz)",
     "La frecuencia inicial debe ser menor que la final",
-    "Cantidad de puntos fuera de rango (2 - 512)",
-    "Tiempo de asentamiento insuficiente para la frecuencia inicial",
+    "Cantidad de puntos fuera de rango (2 - 512 pts)",
+    "Tiempo de asentamiento muy bajo para la frecuencia inicial",
+    "Tiempo de asentamiento fuera de rango (10 - 10000 ms)",
 };
 
 // --- Prototipos privados ---
@@ -185,7 +185,9 @@ static void touch_init(void)
         .disp = disp_handle,
         .handle = tp_handle,
     };
+    esp_log_level_set("gpio", ESP_LOG_NONE); //ignorar error gpio: gpio_install_isr_service(533): GPIO isr service already installed
     lvgl_port_add_touch(&touch_cfg);
+    esp_log_level_set("gpio", ESP_LOG_ERROR);
 
     ESP_LOGI(TAG, "Touch CST816D inicializado");
 }
@@ -196,12 +198,16 @@ void task_lcd_display(void *pvParameters)
     lvgl_init();
     touch_init();
 
-    configASSERT(lvgl_port_lock(portMAX_DELAY));
+    configASSERT(lvgl_port_lock(portMAX_DELAY)); // tomar mutex de LVGL
+
     ui_init();
     ui_scrconfig_kb_init();
     swchart_serie = lv_chart_add_series(ui_swchart, lv_color_hex(0xF5D020), LV_CHART_AXIS_PRIMARY_Y);
-    animindicatorpulse_Animation(ui_swindicator, 0);
-    lvgl_port_unlock();
+    lv_chart_set_axis_range(ui_swchart, LV_CHART_AXIS_PRIMARY_Y, SWCHART_DB_MIN, SWCHART_DB_MAX);
+    lv_scale_set_range(ui_swchart_Yaxis1, SWCHART_DB_MIN, SWCHART_DB_MAX);
+    swindicator_anim = animindicatorpulse_Animation(ui_swindicator, 0);
+
+    lvgl_port_unlock(); // liberar mutex de LVGL
 
     ESP_LOGI(TAG, "UI inicializada");
 
@@ -219,14 +225,34 @@ void task_lcd_display(void *pvParameters)
             case DISPLAY_MSG_SWEEP_START_OK:
                 swchart_actualizar_escala_frecuencia(msg.frec_inicio, msg.frec_final);
                 swchart_reiniciar(msg.puntos);
-                lv_disp_load_scr(ui_scrsweep);
                 break;
-            case DISPLAY_MSG_SWEEP_START_ERROR:
+            case DISPLAY_MSG_SWEEP_CONFIG_ERROR:
                 mostrar_popup_error(msg.motivo);
                 break;
             case DISPLAY_MSG_SWEEP_POINT:
                 ESP_LOGI(TAG, "punto recibido: %lu Hz, %.2f dB", msg.freq_hz, msg.db);
                 swchart_agregar_punto(msg.db);
+                break;
+            case DISPLAY_MSG_SHOW_SWEEP:
+                lv_anim_resume(swindicator_anim);
+                lv_disp_load_scr(ui_scrsweep);
+                break;
+            case DISPLAY_MSG_SHOW_CONFIG:
+                lv_label_set_text(ui_lblbtnpausar, "PAUSAR");
+                lv_label_set_text(ui_lblbtncancelar, "CANCELAR");
+                lv_disp_load_scr(ui_scrconfig);
+                break;
+            case DISPLAY_MSG_SHOW_PAUSE:
+                lv_label_set_text(ui_lblbtnpausar, "REANUDAR");
+                lv_anim_pause(swindicator_anim);
+                break;
+            case DISPLAY_MSG_SHOW_RESUME:
+                lv_label_set_text(ui_lblbtnpausar, "PAUSAR");
+                lv_anim_resume(swindicator_anim);
+                break;
+            case DISPLAY_MSG_SHOW_CANCEL:
+                lv_label_set_text(ui_lblbtncancelar, "CONFIGURAR");
+                lv_anim_pause(swindicator_anim);
                 break;
             }
             lvgl_port_unlock();
@@ -236,19 +262,33 @@ void task_lcd_display(void *pvParameters)
 
 static void mostrar_config_value(sweep_param_e param, uint32_t value)
 {
-    char tmp[16];
+    char tmp[20];
     bool es_frecuencia = (param == SWEEP_PARAM_FREC_INICIO || param == SWEEP_PARAM_FREC_FINAL);
     if (es_frecuencia && value >= 1000)
     {
         uint32_t khz_entero = value / 1000;
-        uint32_t khz_decimal = (value % 1000) / 100;
-        if (khz_decimal == 0)
+        uint32_t khz_resto = value % 1000;
+        if (khz_resto == 0)
+        {
             snprintf(tmp, sizeof(tmp), "%lu kHz", khz_entero);
+        }
+        else if (khz_resto % 100 == 0)
+        {
+            snprintf(tmp, sizeof(tmp), "%lu,%lu kHz", khz_entero, khz_resto / 100);
+        }
+        else if (khz_resto % 10 == 0)
+        {
+            snprintf(tmp, sizeof(tmp), "%lu,%02lu kHz", khz_entero, khz_resto / 10);
+        }
         else
-            snprintf(tmp, sizeof(tmp), "%lu.%lu kHz", khz_entero, khz_decimal);
+        {
+            snprintf(tmp, sizeof(tmp), "%lu,%03lu kHz", khz_entero, khz_resto);
+        }
     }
     else
+    {
         snprintf(tmp, sizeof(tmp), "%lu %s", value, UNIT_CONFIG[param]);
+    }
     lv_label_set_text(*val_labels_config[param], tmp);
 }
 
@@ -259,18 +299,44 @@ static void mostrar_popup_error(sweep_start_result_e motivo)
     lv_obj_move_foreground(ui_uicfgpopup);
 }
 
-// paso logaritmico, igual al usado por task_sweep: f(i) = frec_inicio * (frec_final/frec_inicio)^(i/(ticks-1))
+// mismo paso logaritmico que en task_sweep
 static void swchart_actualizar_escala_frecuencia(uint32_t frec_inicio, uint32_t frec_final)
 {
     for (int i = 0; i < SWCHART_XAXIS_TICKS; i++)
     {
-        double exponente = (double)i / (double)(SWCHART_XAXIS_TICKS - 1);
-        double frec = frec_inicio * pow((double)frec_final / (double)frec_inicio, exponente);
-
-        if (frec >= 1000.0)
-            snprintf(swchart_xaxis_buf[i], sizeof(swchart_xaxis_buf[i]), "%.1fk", frec / 1000.0);
+        uint32_t frec;
+        if (i >= SWCHART_XAXIS_TICKS - 1)
+        {
+            frec = frec_final;
+        }
         else
-            snprintf(swchart_xaxis_buf[i], sizeof(swchart_xaxis_buf[i]), "%lu", (uint32_t)(frec + 0.5));
+        {
+            float exponente = (float)i / (float)(SWCHART_XAXIS_TICKS - 1);
+            frec = (uint32_t)(frec_inicio * powf((float)frec_final / (float)frec_inicio, exponente) + 0.5f);
+        }
+
+        if (frec >= 1000)
+        {
+            uint32_t khz_entero = frec / 1000;
+            uint32_t khz_decimal = ((frec % 1000) + 50) / 100;
+            if (khz_decimal >= 10)
+            {
+                khz_decimal = 0;
+                khz_entero++;
+            }
+            if (khz_decimal == 0)
+            {
+                snprintf(swchart_xaxis_buf[i], sizeof(swchart_xaxis_buf[i]), "%luk", khz_entero);
+            }
+            else
+            {
+                snprintf(swchart_xaxis_buf[i], sizeof(swchart_xaxis_buf[i]), "%lu,%luk", khz_entero, khz_decimal);
+            }
+        }
+        else
+        {
+            snprintf(swchart_xaxis_buf[i], sizeof(swchart_xaxis_buf[i]), "%lu", frec);
+        }
 
         swchart_xaxis_txt_src[i] = swchart_xaxis_buf[i];
     }
@@ -284,7 +350,6 @@ static void swchart_reiniciar(uint32_t puntos)
     lv_chart_set_point_count(ui_swchart, puntos);
     lv_chart_set_all_value(ui_swchart, swchart_serie, LV_CHART_POINT_NONE);
     swchart_idx = 0;
-    swchart_tiene_datos = false;
 }
 
 static void swchart_agregar_punto(float db)
@@ -295,22 +360,14 @@ static void swchart_agregar_punto(float db)
         return;
     }
 
-    int32_t valor = LV_MAX(lroundf(db), SWCHART_DB_PISO);
-
-    if (!swchart_tiene_datos)
+    int32_t valor = lroundf(db);
+    if (valor < SWCHART_DB_MIN)
     {
-        swchart_db_min = valor - 1;
-        swchart_db_max = valor + 1;
-        swchart_tiene_datos = true;
-        lv_chart_set_axis_range(ui_swchart, LV_CHART_AXIS_PRIMARY_Y, swchart_db_min, swchart_db_max);
-        lv_scale_set_range(ui_swchart_Yaxis1, swchart_db_min, swchart_db_max);
+        valor = SWCHART_DB_MIN;
     }
-    else if (valor < swchart_db_min || valor > swchart_db_max)
+    if (valor > SWCHART_DB_MAX)
     {
-        swchart_db_min = LV_MAX(LV_MIN(swchart_db_min, valor), SWCHART_DB_PISO);
-        swchart_db_max = LV_MAX(swchart_db_max, valor);
-        lv_chart_set_axis_range(ui_swchart, LV_CHART_AXIS_PRIMARY_Y, swchart_db_min, swchart_db_max);
-        lv_scale_set_range(ui_swchart_Yaxis1, swchart_db_min, swchart_db_max);
+        valor = SWCHART_DB_MAX;
     }
 
     lv_chart_set_value_by_id(ui_swchart, swchart_serie, swchart_idx, valor);

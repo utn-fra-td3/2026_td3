@@ -35,7 +35,7 @@ extern lv_obj_t * ui_lblname4;
 extern lv_obj_t * ui_lblvalue4;
 extern void ui_event_btnstart(lv_event_t * e);
 extern lv_obj_t * ui_btnstart;
-extern lv_obj_t * ui_Label7;
+extern lv_obj_t * ui_lblbtnstart;
 extern lv_obj_t * ui_Keyboard1;
 extern lv_obj_t * ui_uicfgpopup;
 extern lv_obj_t * ui_uicfgpopuppanel;

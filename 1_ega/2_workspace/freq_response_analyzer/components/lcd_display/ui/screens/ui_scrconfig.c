@@ -27,7 +27,7 @@ lv_obj_t * ui_row4 = NULL;
 lv_obj_t * ui_lblname4 = NULL;
 lv_obj_t * ui_lblvalue4 = NULL;
 lv_obj_t * ui_btnstart = NULL;
-lv_obj_t * ui_Label7 = NULL;
+lv_obj_t * ui_lblbtnstart = NULL;
 lv_obj_t * ui_Keyboard1 = NULL;
 lv_obj_t * ui_uicfgpopup = NULL;
 lv_obj_t * ui_uicfgpopuppanel = NULL;
@@ -386,14 +386,14 @@ void ui_scrconfig_screen_init(void)
     lv_obj_set_style_bg_color(ui_btnstart, lv_color_hex(0x1A8FAB), LV_PART_MAIN | LV_STATE_PRESSED);
     lv_obj_set_style_bg_opa(ui_btnstart, 255, LV_PART_MAIN | LV_STATE_PRESSED);
 
-    ui_Label7 = lv_label_create(ui_btnstart);
-    lv_obj_set_width(ui_Label7, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_Label7, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_align(ui_Label7, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_Label7, "INICIAR BARRIDO");
-    lv_obj_set_style_text_color(ui_Label7, lv_color_hex(0x062033), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_opa(ui_Label7, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_Label7, &ui_font_RobotoMono18, LV_PART_MAIN | LV_STATE_DEFAULT);
+    ui_lblbtnstart = lv_label_create(ui_btnstart);
+    lv_obj_set_width(ui_lblbtnstart, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_lblbtnstart, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_align(ui_lblbtnstart, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_lblbtnstart, "INICIAR BARRIDO");
+    lv_obj_set_style_text_color(ui_lblbtnstart, lv_color_hex(0x062033), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_lblbtnstart, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_lblbtnstart, &ui_font_RobotoMono18, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Keyboard1 = lv_keyboard_create(ui_scrconfig);
     lv_keyboard_set_mode(ui_Keyboard1, LV_KEYBOARD_MODE_USER_1);
@@ -563,7 +563,7 @@ void ui_scrconfig_screen_destroy(void)
     ui_lblname4 = NULL;
     ui_lblvalue4 = NULL;
     ui_btnstart = NULL;
-    ui_Label7 = NULL;
+    ui_lblbtnstart = NULL;
     ui_Keyboard1 = NULL;
     ui_uicfgpopup = NULL;
     ui_uicfgpopuppanel = NULL;
