@@ -252,6 +252,7 @@ void task_lcd_display(void *pvParameters)
                 break;
             case DISPLAY_MSG_SHOW_CANCEL:
                 lv_label_set_text(ui_lblbtncancelar, "CONFIGURAR");
+                lv_anim_pause(swindicator_anim);
                 break;
             }
             lvgl_port_unlock();
