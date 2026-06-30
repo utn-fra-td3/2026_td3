@@ -112,15 +112,13 @@ static void lcd_init(void)
     ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel_handle, 0, 0));
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
 
-    gpio_set_direction(LCD_BL, GPIO_MODE_OUTPUT);
-    gpio_set_level(LCD_BL, 1);
-
     ESP_LOGI(TAG, "ST7789 inicializado");
 }
 
 static void lvgl_init(void)
 {
-    const lvgl_port_cfg_t lvgl_cfg = ESP_LVGL_PORT_INIT_CONFIG();
+    lvgl_port_cfg_t lvgl_cfg = ESP_LVGL_PORT_INIT_CONFIG();
+    lvgl_cfg.task_priority = TASK_LVGL_PRIORITY;
     ESP_ERROR_CHECK(lvgl_port_init(&lvgl_cfg));
 
     const lvgl_port_display_cfg_t disp_cfg = {
@@ -198,7 +196,7 @@ void task_lcd_display(void *pvParameters)
     lvgl_init();
     touch_init();
 
-    configASSERT(lvgl_port_lock(portMAX_DELAY)); // tomar mutex de LVGL
+    lvgl_port_lock(portMAX_DELAY); // tomar mutex de LVGL
 
     ui_init();
     ui_scrconfig_kb_init();
@@ -209,6 +207,10 @@ void task_lcd_display(void *pvParameters)
 
     lvgl_port_unlock(); // liberar mutex de LVGL
 
+    // Encender el backlight del LCD
+    gpio_set_direction(LCD_BL, GPIO_MODE_OUTPUT);
+    gpio_set_level(LCD_BL, 1);
+
     ESP_LOGI(TAG, "UI inicializada");
 
     display_msg_t msg;
@@ -216,7 +218,7 @@ void task_lcd_display(void *pvParameters)
     {
         if (xQueueReceive(queue_display, &msg, portMAX_DELAY) == pdTRUE)
         {
-            configASSERT(lvgl_port_lock(portMAX_DELAY));
+            lvgl_port_lock(portMAX_DELAY);
             switch (msg.type)
             {
             case DISPLAY_MSG_CONFIG_VALUE:
