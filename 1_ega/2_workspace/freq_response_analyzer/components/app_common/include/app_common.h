@@ -26,6 +26,8 @@
 #define TASK_NVS_STACK 2048
 #define TASK_NVS_PRIORITY 1
 
+#define TASK_LVGL_PRIORITY 2
+
 // --- Longitud de colas ---
 #define QUEUE_MENU_EVENTS_LEN 8
 #define QUEUE_SWEEP_CMD_LEN 4
