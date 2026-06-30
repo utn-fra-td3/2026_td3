@@ -1,0 +1,19 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.extensionActivationMode": "always",
+  "idf.currentSetup": "C:\\esp\\v6.0.1\\esp-idf",
+  "idf.portWin": "COM3",
+  "idf.openOcdConfigs": [
+    "board/esp32s3-builtin.cfg"
+  ],
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32s3"
+  },
+  "clangd.path": "C:\\Espressif\\tools\\esp-clang\\esp-20.1.1_20250829\\esp-clang\\bin\\clangd.exe",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=c:\\Users\\juanm\\2026_td3_511_Montoni_JuanManuel\\1_ega\\2_workspace\\ega1_ej7\\ega_ej7\\build"
+  ],
+  "idf.flashType": "UART"
+}
