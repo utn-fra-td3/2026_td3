@@ -12,7 +12,6 @@
 #define KB_BUF_LEN 8 // max "100000\0"
 
 // --- Variables privadas ---
-static const char *TAG = "ui_scrconfig_kb";
 
 static const char *kb_map[] = {
     "1", "2", "3", "\n",

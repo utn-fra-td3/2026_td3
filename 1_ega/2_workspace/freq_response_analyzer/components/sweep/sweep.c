@@ -110,6 +110,8 @@ static bool medir_punto(uint32_t frec_hz, uint32_t tiempo_asentamiento_ms, float
     float vin_prom = (float)suma_vin / SWEEP_MUESTRAS;
     float vout_prom = (float)suma_vout / SWEEP_MUESTRAS;
 
+    ESP_LOGI(TAG, "medicion: %lu Hz, vin=%.0f mV, vout=%.0f mV", frec_hz, vin_prom, vout_prom);
+
     *db = 20.0f * log10f(vin_prom / vout_prom); // transferencia = respuesta/excitacion = vin/vout
     return false;
 }
