@@ -22,7 +22,7 @@ static void atender_boton(gpio_num_t pin, menu_evt_e evento);
 
 void task_user_controls(void *pvParameters)
 {
-    queue_btn_isr = xQueueCreate(4, sizeof(uint32_t));
+    queue_btn_isr = xQueueCreate(1, sizeof(uint32_t));
 
     inicializar_gpio();
 
@@ -61,20 +61,18 @@ static void inicializar_gpio(void)
 
 static void gpio_btn1_handler(void *arg)
 {
-    gpio_intr_disable(USER_CONTROLS_BTN1);
-
     uint32_t gpio_num = USER_CONTROLS_BTN1;
     BaseType_t woken;
     xQueueSendFromISR(queue_btn_isr, &gpio_num, &woken);
+    portYIELD_FROM_ISR(woken);
 }
 
 static void gpio_btn2_handler(void *arg)
 {
-    gpio_intr_disable(USER_CONTROLS_BTN2);
-
     uint32_t gpio_num = USER_CONTROLS_BTN2;
     BaseType_t woken;
     xQueueSendFromISR(queue_btn_isr, &gpio_num, &woken);
+    portYIELD_FROM_ISR(woken);
 }
 
 static void atender_boton(gpio_num_t pin, menu_evt_e evento)
@@ -87,5 +85,5 @@ static void atender_boton(gpio_num_t pin, menu_evt_e evento)
         xQueueSend(queue_menu_events, &ev, portMAX_DELAY);
         ESP_LOGI(TAG, "Boton GPIO%d pulsado", pin);
     }
-    gpio_intr_enable(pin);
+    xQueueReset(queue_btn_isr); //limpia la cola de los rebotes
 }
