@@ -1,0 +1,16 @@
+{
+  "cmake.sourceDirectory": "/Users/mcelada/Documents/2026_td3_512_Celada_Matias/1_ega/2_workspace/freertos",
+  "idf.currentSetup": "/Users/mcelada/.espressif/v6.0/esp-idf",
+  "idf.openOcdConfigs": [
+    "board/esp32s3-builtin.cfg"
+  ],
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32s3"
+  },
+  "clangd.path": "/Users/mcelada/.espressif/tools/esp-clang/esp-20.1.1_20250829/esp-clang/bin/clangd",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=/Users/mcelada/Documents/2026_td3_512_Celada_Matias/1_ega/2_workspace/build"
+  ]
+}

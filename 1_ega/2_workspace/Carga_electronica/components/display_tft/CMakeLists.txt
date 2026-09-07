@@ -1,0 +1,35 @@
+idf_component_register(
+    SRCS
+        "display_tft.c"
+        "ui/ui.c"
+        "ui/ui_helpers.c"
+        "ui/ui_comp.c"
+        "ui/ui_comp_hook.c"
+        "ui/ui_comp_hora.c"
+        "ui/ui_Powering_Up.c"
+        "ui/ui_Init.c"
+        "ui/ui_Running.c"
+        "ui/ui_Modo.c"
+        "ui/ui_Voltaje.c"
+        "ui/ui_Corriente.c"
+        "ui/ui_Resistencia.c"
+        "ui/ui_Voltaje_Limit_set.c"
+        "ui/ui_Corriente_Limit_set.c"
+    INCLUDE_DIRS
+        "."
+        "include"
+        "ui"
+    REQUIRES
+        lvgl
+        esp_driver_spi
+        esp_driver_gpio
+        esp_driver_pcnt
+        esp_lcd
+        esp_timer
+        heap
+        pin_setting
+        communication_setting
+        system_manager
+        encoder
+        esp_lcd_ili9341
+)
