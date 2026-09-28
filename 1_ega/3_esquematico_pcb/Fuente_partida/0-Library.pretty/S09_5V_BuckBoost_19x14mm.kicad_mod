@@ -1,0 +1,275 @@
+(footprint "S09_5V_BuckBoost_19x14mm"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(descr "Modulo S09 buck-boost 3-15V a 5V; cuerpo 19x14mm; centros izquierda-derecha 15.8mm; separacion vertical 8mm; EN a 2.54mm de VIN+")
+	(tags "S09 buck boost DC-DC 5V module THT 19x14")
+	(property "Reference" "U**"
+		(at 0 -9 0)
+		(layer "F.SilkS")
+		(uuid "4bb9e1ea-789d-46cb-8cc8-ad67d197ed0e")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "S09_5V"
+		(at 0 9 0)
+		(layer "F.Fab")
+		(uuid "4359b797-6ed3-4f2c-9e7f-9d10d8ae6622")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "08e4d4f4-60ff-41d3-ac94-9ac77dc08065")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "dc5ebbbc-afdb-41c7-ae30-5d137a3927b0")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(attr through_hole)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start -9.5 -7)
+		(end 6.3 -7)
+		(stroke
+			(width 0.2)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "5c3ed2dd-020c-4b5b-9528-76e921a88174")
+	)
+	(fp_line
+		(start -9.5 -5.5)
+		(end -9.5 -7)
+		(stroke
+			(width 0.2)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "3181f19c-076e-4c88-821d-f19d012a9989")
+	)
+	(fp_line
+		(start -9.5 2.5)
+		(end -9.5 -2.5)
+		(stroke
+			(width 0.2)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "a23e55ca-5250-45ca-9d05-f0920ec37a00")
+	)
+	(fp_line
+		(start -9.5 7)
+		(end -9.5 5.5)
+		(stroke
+			(width 0.2)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "e5e17167-fe36-4620-b167-0c723b265860")
+	)
+	(fp_line
+		(start 6.3 -7)
+		(end 6.3 -5.2)
+		(stroke
+			(width 0.2)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "7bb8636d-2aa6-4aa4-90cb-90057b188e49")
+	)
+	(fp_line
+		(start 9.5 -2.5)
+		(end 9.5 2.5)
+		(stroke
+			(width 0.2)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "d8c3fc73-004f-43cb-89e1-a8dfaaaf49be")
+	)
+	(fp_line
+		(start 9.5 5.5)
+		(end 9.5 7)
+		(stroke
+			(width 0.2)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "17eeb3ae-4e96-4c62-a7e0-b81e8cd58da2")
+	)
+	(fp_line
+		(start 9.5 7)
+		(end -9.5 7)
+		(stroke
+			(width 0.2)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "5b2cfc81-f34c-45d5-8bae-98e2220b7cd7")
+	)
+	(fp_rect
+		(start -10.5 -8)
+		(end 10.5 8)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "230e9fca-f890-4d0d-802e-564cc51870ca")
+	)
+	(fp_rect
+		(start -9.5 -7)
+		(end 9.5 7)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "615035cc-cfba-4714-b1da-7816d677434e")
+	)
+	(fp_text user "S09 5V"
+		(at 0 0 0)
+		(layer "F.SilkS")
+		(uuid "52aa2d5a-6262-4f3f-97db-e43c4c68df4e")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(fp_text user "VOUT-"
+		(at -6.2 -4 0)
+		(layer "F.Fab")
+		(uuid "bd984f0a-5abf-4de4-a3f7-3ff167edfb92")
+		(effects
+			(font
+				(size 0.8 0.8)
+				(thickness 0.12)
+			)
+		)
+	)
+	(fp_text user "VOUT+"
+		(at -6.2 4 0)
+		(layer "F.Fab")
+		(uuid "542efd7f-33e1-48ee-a527-26824a1189be")
+		(effects
+			(font
+				(size 0.8 0.8)
+				(thickness 0.12)
+			)
+		)
+	)
+	(fp_text user "VIN+"
+		(at 6.2 -4 0)
+		(layer "F.Fab")
+		(uuid "34a33975-bf3d-4dd2-bac6-ec625aec0ad4")
+		(effects
+			(font
+				(size 0.8 0.8)
+				(thickness 0.12)
+			)
+		)
+	)
+	(fp_text user "VIN-"
+		(at 6.2 4 0)
+		(layer "F.Fab")
+		(uuid "5d93632f-0d96-4a12-9dd1-4fea436778b6")
+		(effects
+			(font
+				(size 0.8 0.8)
+				(thickness 0.12)
+			)
+		)
+	)
+	(fp_text user "EN"
+		(at 6.6 -6.54 0)
+		(layer "F.Fab")
+		(uuid "475b4049-7cd4-481e-ad60-2e2ed55ec84c")
+		(effects
+			(font
+				(size 0.8 0.8)
+				(thickness 0.12)
+			)
+		)
+	)
+	(pad "1" thru_hole rect
+		(at 7.9 -4)
+		(size 2.4 2.4)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "859d1933-a986-45d1-b18e-7ffd085b2c19")
+	)
+	(pad "2" thru_hole circle
+		(at 7.9 4)
+		(size 2.4 2.4)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "51cc0125-0490-4c74-a635-cdcaf3c318d4")
+	)
+	(pad "3" thru_hole circle
+		(at -7.9 4)
+		(size 2.4 2.4)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "f7116d76-ab6a-48a1-9380-fa7d5be01161")
+	)
+	(pad "4" thru_hole circle
+		(at -7.9 -4)
+		(size 2.4 2.4)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "a11c49cb-b446-4cbb-a230-5198b5a57910")
+	)
+	(pad "5" thru_hole circle
+		(at 7.9 -6.54)
+		(size 2.4 2.4)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "12e2b8f2-e1a0-468e-8d6c-f3e2792f2907")
+	)
+	(embedded_fonts no)
+
+	(model "${KIPRJMOD}/0-Library.3dshapes/S09_5V_Pads_Borde_v3.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

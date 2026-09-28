@@ -1,0 +1,16 @@
+Modelos 3D personalizados del proyecto Fuente partida
+
+Modelo activo del modulo S09:
+  S09_5V_Pads_Borde_v3.step
+
+La placa y la huella S09_5V_BuckBoost_19x14mm apuntan a ese archivo.
+Sus cinco centros de conexion coinciden con los pads del PCB:
+  (7.9, 4), (7.9, -4), (-7.9, -4), (-7.9, 4), (7.9, 6.54) mm
+
+Fuentes CadQuery:
+  modelos_revision2.py
+  s09_foto_v3.py
+
+El modelo es una representacion visual basada en la fotografia del modulo y
+en las coordenadas verificadas de la huella. La posicion de los pines es la
+dimension critica; la forma de los componentes SMD es aproximada.
