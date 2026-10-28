@@ -1,0 +1,313 @@
+(footprint "ADS1115_Modulo_1x10_Pads_Corregidos"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(descr "Through hole straight socket strip, 1x10, 2.54mm pitch, single row (from Kicad 4.0.7), script generated")
+	(tags "Through hole socket strip THT 1x10 2.54mm single row")
+	(property "Reference" "U3"
+		(at 9.215 11.13 180)
+		(layer "F.SilkS")
+		(uuid "fc93f46b-1c11-4b6b-bd79-bcea36902a8a")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "ADS1115"
+		(at 0 25.63 180)
+		(layer "F.Fab")
+		(uuid "e6965ce3-1863-42ac-acf7-38906b89db56")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" "http://www.ti.com/lit/ds/symlink/ads1113.pdf"
+		(at 0 0 180)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "9753f94a-13cc-43b8-89a7-6a75273c5a04")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" "Ultra-Small, Low-Power, I2C-Compatible, 860-SPS, 16-Bit ADCs With Internal Reference, Oscillator, and Programmable Comparator, VSSOP-10"
+		(at 0 0 180)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "4e814eb0-e5c5-4a11-b399-718ae89f19b6")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "KiLib_Generator" "connector/pin_header_socket"
+		(at 0 0 180)
+		(layer "F.SilkS")
+		(hide yes)
+		(uuid "e1dbec35-2af6-4b85-bfba-54353a735420")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property ki_fp_filters "TSSOP*3x3mm*P0.5mm*")
+	(sheetname "/")
+	(sheetfile "Fuente partida.kicad_sch")
+	(attr through_hole)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start -1.33 1.27)
+		(end -1.33 24.19)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "592f47fd-3329-4530-88b9-ee982edf5114")
+	)
+	(fp_line
+		(start -1.33 24.19)
+		(end 17 24.19)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "a55b207a-dcb4-41c5-8034-c331983828bf")
+	)
+	(fp_line
+		(start 15.335 -1.33)
+		(end 17 -1.33)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "7a6e4976-64c6-4317-b4ae-a8dcaf545d65")
+	)
+	(fp_line
+		(start 17 -1.33)
+		(end 17 0)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "a04c5fb1-d28d-4ddb-b842-ec0bb7b2d998")
+	)
+	(fp_line
+		(start 17 1.27)
+		(end 17 24.19)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "d5ca88fd-251e-4c7e-abe6-eda9f8aa1895")
+	)
+	(fp_line
+		(start -1.77 -1.77)
+		(end 18 -1.77)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "728ce826-f35f-4389-9002-aff2a80fc620")
+	)
+	(fp_line
+		(start -1.77 24.63)
+		(end -1.77 -1.77)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "c4785749-9efb-4b22-8e0f-dd9aef7798d3")
+	)
+	(fp_line
+		(start 18 -1.77)
+		(end 18 24.63)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "d77989b9-a49e-47a6-bcfb-2a9f54c91a48")
+	)
+	(fp_line
+		(start 18 24.63)
+		(end -1.77 24.63)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "7eff6004-1d28-41bc-a4c9-170bc4cc0ead")
+	)
+	(fp_line
+		(start -1.27 -1.27)
+		(end 16.4 -1.27)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "7b4f816e-1437-4514-bc01-a7eb8b7bc2a6")
+	)
+	(fp_line
+		(start -1.27 24.13)
+		(end -1.27 -1.27)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "305925a8-39ea-4b35-a097-5036ff6a7060")
+	)
+	(fp_line
+		(start 16.3825 -1.3175)
+		(end 17.0175 -0.6825)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "d87cee09-bad8-4b8b-beed-02a58acec981")
+	)
+	(fp_line
+		(start 17 -0.635)
+		(end 17 24.13)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "054296bc-d219-4e14-b365-72b54202bcae")
+	)
+	(fp_line
+		(start 17 24.13)
+		(end -1.27 24.13)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "448b399a-ce3f-41ae-92fc-ec1beb29b925")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 11.43 270)
+		(layer "F.Fab")
+		(uuid "36740b50-c94d-4f1b-9573-2405b693b2e8")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" thru_hole rect
+		(at 0 0)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "4d8f5ed3-8c8f-4e5e-9eaa-c90331151eba")
+	)
+	(pad "2" thru_hole circle
+		(at 0 2.54)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "05fd9485-0d90-45f7-b327-cd9f78b1dab4")
+	)
+	(pad "3" thru_hole circle
+		(at 0 5.08)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "192af3cf-38a5-4105-80df-e2ada14a6a82")
+	)
+	(pad "4" thru_hole circle
+		(at 0 7.62)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "173d77d0-0a93-4ef6-9c78-25f230df73a5")
+	)
+	(pad "5" thru_hole circle
+		(at 0 10.16)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "a29e1648-20f6-42c5-be33-14fd02b98fcf")
+	)
+	(pad "6" thru_hole circle
+		(at 0 12.7)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "e4f40fea-bea8-4318-9415-2558d6a19cc8")
+	)
+	(pad "7" thru_hole circle
+		(at 0 15.24)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "f6e10585-0e42-4e69-828a-9b53d0d9540f")
+	)
+	(pad "8" thru_hole circle
+		(at 0 17.78)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "6b22f194-b056-4e34-816a-616d3d2d20e8")
+	)
+	(pad "9" thru_hole circle
+		(at 0 20.32)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "74084cfa-f7a8-49e9-abe3-60336b4e4f8d")
+	)
+	(pad "10" thru_hole circle
+		(at 0 22.86)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "decf509a-4c0a-4642-af00-eb0a63995e38")
+	)
+	(embedded_fonts no)
+
+	(model "${KIPRJMOD}/0-Library.3dshapes/ADS1115_Modulo_1x10.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)
