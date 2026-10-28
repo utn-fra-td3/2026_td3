@@ -1,0 +1,17 @@
+[Unit]
+Description=Panel web de la fuente partida EGA
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+Group=dialout
+WorkingDirectory=/opt/ega-egb
+ExecStart=/usr/bin/python3 /opt/ega-egb/ega_web.py --host 0.0.0.0 --port 8080 --device /dev/ega_uart
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

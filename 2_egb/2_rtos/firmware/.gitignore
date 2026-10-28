@@ -1,0 +1,9 @@
+build/
+debug/
+.vscode/
+*.uf2
+*.elf
+*.bin
+*.hex
+*.map
+*.dis

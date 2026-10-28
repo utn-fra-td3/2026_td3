@@ -1,0 +1,65 @@
+APLICACIÓN DE CONSOLA EGA
+
+Compilación
+-----------
+make
+
+Uso
+---
+./ega-cli
+    Abre el modo interactivo sobre /dev/ega_uart.
+
+./ega-cli COMANDO
+    Ejecuta un único comando y muestra la respuesta.
+
+Opciones
+--------
+-d DISPOSITIVO    Selecciona otro dispositivo de caracteres.
+-t MILISEGUNDOS   Cambia el tiempo máximo de espera. El valor predeterminado es 1500 ms.
+-h                Muestra la ayuda.
+
+Comandos implementados
+----------------------
+GET
+    Lee las mediciones, referencias, límites, estados y fallas de las dos ramas.
+
+SET P <V>
+SET N <V>
+    Ajusta la referencia de tensión entre 0 y 30 V.
+
+SET ILP <A>
+SET ILN <A>
+    Ajusta el límite de corriente entre 0,10 y 0,75 A, en pasos de 0,05 A.
+
+SET VLP <V>
+SET VLN <V>
+    Ajusta el límite de sobretensión entre 5 y 40 V.
+
+OUT P ON
+OUT P OFF
+OUT N ON
+OUT N OFF
+    Habilita o deshabilita la rama seleccionada.
+
+RESET P
+RESET N
+    Borra el enclavamiento OC/OV de la rama y la mantiene apagada.
+
+SAVE
+    Guarda referencias y límites en la memoria flash. Las dos ramas deben estar apagadas.
+
+Comandos locales del modo interactivo
+-------------------------------------
+HELP    Muestra la ayuda.
+EXIT    Cierra la aplicación.
+QUIT    Cierra la aplicación.
+
+Ejemplos
+--------
+./ega-cli GET
+./ega-cli SET P 12.5
+./ega-cli SET ILN 0.50
+./ega-cli OUT P ON
+./ega-cli RESET N
+
+Las respuestas correctas comienzan con OK. Los comandos rechazados devuelven ERR.

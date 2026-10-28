@@ -41,6 +41,8 @@ project(firmware C CXX ASM)
 
 pico_sdk_init()
 
+set(FREERTOS_SUPPORT_DYNAMIC_ALLOCATION ON)
+
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../freertos ${CMAKE_BINARY_DIR}/freertos)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../helper ${CMAKE_BINARY_DIR}/helper)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../lcd ${CMAKE_BINARY_DIR}/lcd)

@@ -1,0 +1,62 @@
+GUÍA DE USUARIO DEL PANEL WEB EGA
+
+Requisitos
+----------
+- Módulo ega_uart cargado.
+- Dispositivo /dev/ega_uart disponible para el usuario.
+- Raspberry Pi Pico conectada por UART a 115200 bit/s.
+- Python 3.
+
+Inicio manual
+-------------
+python3 ega_web.py
+
+El panel queda disponible en:
+http://direccion-de-la-raspberry:8080
+
+También puede seleccionarse otro dispositivo o puerto:
+python3 ega_web.py --device /dev/ega_uart --host 0.0.0.0 --port 8080
+
+Inicio como servicio
+--------------------
+El instalador copia ega-web.service y lo habilita para iniciar con la Raspberry Pi.
+
+Comandos útiles:
+sudo systemctl start ega-web
+sudo systemctl stop ega-web
+sudo systemctl restart ega-web
+sudo systemctl status ega-web
+
+Uso del panel
+-------------
+1. Abrir el panel desde un navegador conectado a la misma red.
+2. Confirmar que el indicador muestre "EGA en línea".
+3. Cada tarjeta muestra tensión, corriente, referencia, límites y estado de una rama.
+4. Para cambiar la tensión, escribir un valor entre 0 y 30 V y presionar Aplicar.
+5. Los límites de corriente se modifican en pasos de 0,05 A, entre 0,10 y 0,75 A.
+6. Los límites de sobretensión se modifican en pasos de 0,5 V, entre 5 y 40 V.
+7. Los límites sólo pueden cambiarse con la salida correspondiente apagada.
+8. Encender y Apagar controlan cada rama de manera independiente.
+9. Restablecer borra una falla OC/OV, pero no vuelve a encender la salida.
+10. Guardar configuración almacena las referencias y los límites en la memoria flash.
+
+Indicaciones de seguridad
+-------------------------
+- Antes de habilitar una rama, comprobar la carga y los límites configurados.
+- Si aparece OC u OV, retirar la causa y utilizar Restablecer.
+- La protección permanece en el firmware de la Pico; el navegador sólo supervisa y envía órdenes.
+- No desconectar GND, TX o RX mientras se realiza una operación.
+
+Diagnóstico básico
+------------------
+"Sin respuesta"
+    Verificar la alimentación de la Pico, el cableado UART y /dev/ega_uart.
+
+"Comando no permitido"
+    El valor está fuera de rango o la orden no tiene el formato esperado.
+
+El panel no modifica un límite
+    Apagar primero la rama correspondiente y volver a intentarlo.
+
+El servicio no inicia
+    Ejecutar systemctl status ega-web y comprobar los permisos de /dev/ega_uart.

@@ -9,7 +9,7 @@
 #include "pico/stdlib.h"
 
 #define SETTINGS_MAGIC 0x46505444U
-#define SETTINGS_VERSION 1U
+#define SETTINGS_VERSION 2U
 #define SETTINGS_FLASH_OFFSET (PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE)
 
 typedef struct {

@@ -67,7 +67,15 @@
  * @brief Cantidad de bytes de memoria dinámica disponibles para FreeRTOS
  * @see Barry, R. "Mastering the FreeRTOS Real Time Kernel", Sección 2.2
  */
-#define configTOTAL_HEAP_SIZE 16364
+#define configTOTAL_HEAP_SIZE 32768U
+/**
+ * @brief Invoca vApplicationMallocFailedHook si falla una reserva dinamica.
+ */
+#define configUSE_MALLOC_FAILED_HOOK 1
+/**
+ * @brief Comprueba desbordamientos de stack al cambiar de contexto.
+ */
+#define configCHECK_FOR_STACK_OVERFLOW 2
 /**
  * @brief Cantidad de caracteres que se le pueden asignar al nombre de una tarea para debugging
  * @see Barry, R. "Mastering the FreeRTOS Real Time Kernel", Sección 2.2
