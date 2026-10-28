@@ -16,6 +16,6 @@ dependencies:
 direct_dependencies:
 - espressif/esp-dsp
 - idf
-manifest_hash: 1fc6274852161353aa79805fe05d905302e7b11a5f92d1af6eb40c68dd497786
+manifest_hash: acb56510805324f107f7c8d502171e5907ed4196d13483775510e84ad86c1969
 target: esp32
 version: 3.0.0

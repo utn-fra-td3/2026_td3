@@ -1,0 +1,36 @@
+\babel@toc {spanish}{}\relax 
+\contentsline {section}{\numberline {1}Introducción}{3}{section.1}%
+\contentsline {section}{\numberline {2}Objetivos}{3}{section.2}%
+\contentsline {section}{\numberline {3}Alcance}{3}{section.3}%
+\contentsline {section}{\numberline {4}Diagrama en bloques del sistema integrado}{3}{section.4}%
+\contentsline {section}{\numberline {5}Hardware}{4}{section.5}%
+\contentsline {subsection}{\numberline {5.1}ADC I2S PCM1808}{4}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}DAC I2S PCM5102}{5}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}LCD 20x04}{6}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Encoder rotativo KY-040}{6}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}UART PC / PL2303}{6}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}ESP32}{7}{subsection.5.6}%
+\contentsline {subsection}{\numberline {5.7}Raspberry Pi 4}{7}{subsection.5.7}%
+\contentsline {section}{\numberline {6}Software}{8}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Descripción de algoritmo}{8}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Tareas}{9}{subsection.6.2}%
+\contentsline {subsubsection}{Descripción de tareas}{10}{subsubsection*.13}%
+\contentsline {subsection}{\numberline {6.3}Arquitectura GPOS (Linux)}{11}{subsection.6.3}%
+\contentsline {subsubsection}{Kernel space: driver UART basado en serdev}{12}{subsubsection*.15}%
+\contentsline {paragraph}{Estructura del driver.}{12}{paragraph*.16}%
+\contentsline {paragraph}{Interfaz ioctl.}{12}{paragraph*.17}%
+\contentsline {paragraph}{Recepción de datos.}{13}{paragraph*.18}%
+\contentsline {paragraph}{Envío de datos.}{13}{paragraph*.19}%
+\contentsline {paragraph}{Device Tree Overlay.}{13}{paragraph*.20}%
+\contentsline {paragraph}{Compilación.}{14}{paragraph*.21}%
+\contentsline {subsubsection}{User space: aplicación de terminal y aplicación gráfica}{14}{subsubsection*.22}%
+\contentsline {paragraph}{Aplicación de terminal (\texttt {eq\_ctl}).}{14}{paragraph*.23}%
+\contentsline {paragraph}{Aplicación gráfica (cliente en C\# por SSH).}{14}{paragraph*.24}%
+\contentsline {section}{\numberline {7}Diseño de PCB}{15}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Esquemático}{15}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Layout}{16}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Test points}{16}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}PCB físico}{17}{subsection.7.4}%
+\contentsline {section}{\numberline {8}Resultados y mediciones}{17}{section.8}%
+\contentsline {section}{\numberline {9}Anexo imagenes}{18}{section.9}%
+\contentsline {section}{\numberline {10}Conclusiones}{19}{section.10}%

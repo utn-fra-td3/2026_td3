@@ -1,0 +1,106 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\citation{intel386}
+\citation{ldd3}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introducción}{3}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Objetivos}{3}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Alcance}{3}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Diagrama en bloques del sistema integrado}{3}{section.4}\protected@file@percent }
+\citation{pcm1808}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Diagrama en bloques del sistema integrado.}}{4}{figure.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:diagrama_bloques}{{1}{4}{Diagrama en bloques del sistema integrado}{figure.caption.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Hardware}{4}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}ADC I2S PCM1808}{4}{subsection.5.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Integrado PCM1808.}}{4}{figure.caption.2}\protected@file@percent }
+\newlabel{fig:pcm1808}{{2}{4}{Integrado PCM1808}{figure.caption.2}{}}
+\citation{pcm5102}
+\citation{pcf8574}
+\citation{ky040}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}DAC I2S PCM5102}{5}{subsection.5.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Módulo basado en PCM5102.}}{5}{figure.caption.3}\protected@file@percent }
+\newlabel{fig:pcm5102}{{3}{5}{Módulo basado en PCM5102}{figure.caption.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}LCD 20x04}{5}{subsection.5.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Frente y dorso del display LCD.}}{5}{figure.caption.4}\protected@file@percent }
+\newlabel{fig:lcd}{{4}{5}{Frente y dorso del display LCD}{figure.caption.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Encoder rotativo KY-040}{5}{subsection.5.4}\protected@file@percent }
+\citation{pl2303}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Encoder rotativo KY-040.}}{6}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:encoder}{{5}{6}{Encoder rotativo KY-040}{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}UART PC / PL2303}{6}{subsection.5.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Adaptador basado en PL2303.}}{6}{figure.caption.6}\protected@file@percent }
+\newlabel{fig:pl2303}{{6}{6}{Adaptador basado en PL2303}{figure.caption.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}ESP32}{6}{subsection.5.6}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Placa de desarrollo ESP32.}}{7}{figure.caption.7}\protected@file@percent }
+\newlabel{fig:esp32}{{7}{7}{Placa de desarrollo ESP32}{figure.caption.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}Raspberry Pi 4}{7}{subsection.5.7}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Pinout de Raspberry Pi 4.}}{7}{figure.caption.8}\protected@file@percent }
+\newlabel{fig:pinout_rpi}{{8}{7}{Pinout de Raspberry Pi 4}{figure.caption.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.8}Conexionado completo}{8}{subsection.5.8}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Diagrama de conexiones completo.}}{8}{figure.caption.9}\protected@file@percent }
+\newlabel{fig:conexionado}{{9}{8}{Diagrama de conexiones completo}{figure.caption.9}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Software}{8}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Arquitectura RTOS (FreeRTOS)}{8}{subsection.6.1}\protected@file@percent }
+\citation{smith_dsp}
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces Diagrama de tareas del RTOS actualizado (incluye Task\_UART para GPOS).}}{9}{figure.caption.10}\protected@file@percent }
+\newlabel{fig:tareas}{{10}{9}{Diagrama de tareas del RTOS actualizado (incluye Task\_UART para GPOS)}{figure.caption.10}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Descripción de tareas}{9}{subsubsection*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Cambios respecto de la EGA para la EGB}{9}{subsubsection*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Guía de código: tareas, recursos y sincronización}{10}{subsubsection*.13}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Relación entre tareas, recursos y mecanismos de sincronización.}}{10}{table.caption.14}\protected@file@percent }
+\newlabel{tab:tareas_recursos}{{1}{10}{Relación entre tareas, recursos y mecanismos de sincronización}{table.caption.14}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Colas, semáforos y sincronización}{10}{subsubsection*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Gestión de interrupciones}{10}{subsubsection*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Persistencia}{10}{subsubsection*.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Arquitectura GPOS (Linux)}{10}{subsection.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Kernel space: driver UART y char device}{10}{subsubsection*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{User space: aplicación de consola y aplicación gráfica}{11}{subsubsection*.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Diagrama de software integrado}{11}{subsubsection*.20}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces Diagrama de software integrado EGA+EGB.}}{11}{figure.caption.21}\protected@file@percent }
+\newlabel{fig:software_integrado}{{11}{11}{Diagrama de software integrado EGA+EGB}{figure.caption.21}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Protocolo de comandos}{12}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Listado de comandos implementados}{12}{subsubsection*.22}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Listado de comandos implementados.}}{12}{table.caption.23}\protected@file@percent }
+\newlabel{tab:comandos}{{2}{12}{Listado de comandos implementados}{table.caption.23}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Formato de tramas y códigos de error}{12}{subsubsection*.24}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Diseño de PCB}{12}{section.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Esquemático}{12}{subsection.7.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces Esquemático del ecualizador.}}{13}{figure.caption.25}\protected@file@percent }
+\newlabel{fig:esquematico}{{12}{13}{Esquemático del ecualizador}{figure.caption.25}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Layout}{13}{subsection.7.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces Layout del PCB.}}{14}{figure.caption.26}\protected@file@percent }
+\newlabel{fig:pcb}{{13}{14}{Layout del PCB}{figure.caption.26}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Test points}{14}{subsection.7.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Lista de test points.}}{14}{table.caption.27}\protected@file@percent }
+\newlabel{tab:testpoints}{{3}{14}{Lista de test points}{table.caption.27}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8}Resultados y mediciones}{15}{section.8}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {14}{\ignorespaces Captura de osciloscopio para senoidal de 120 Hz con ganancia de 10 dB.}}{15}{figure.caption.28}\protected@file@percent }
+\newlabel{fig:120hz}{{14}{15}{Captura de osciloscopio para senoidal de 120 Hz con ganancia de 10 dB}{figure.caption.28}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {15}{\ignorespaces Captura de osciloscopio para senoidal de 2 kHz con atenuación de 10 dB.}}{15}{figure.caption.29}\protected@file@percent }
+\newlabel{fig:2khz}{{15}{15}{Captura de osciloscopio para senoidal de 2 kHz con atenuación de 10 dB}{figure.caption.29}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {16}{\ignorespaces Captura de osciloscopio para senoidal de 5 kHz sin modificar.}}{15}{figure.caption.30}\protected@file@percent }
+\newlabel{fig:5khz}{{16}{15}{Captura de osciloscopio para senoidal de 5 kHz sin modificar}{figure.caption.30}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {9}Conclusiones}{15}{section.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}Manual de usuario}{16}{section.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.1}Modo local}{16}{subsection.10.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.2}Modo remoto (GPOS)}{16}{subsection.10.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A}Cuestionario teórico EGA}{16}{appendix.A}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}Sistemas Operativos -- Generalidades}{16}{subsection.A.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}Kernel de FreeRTOS}{17}{subsection.A.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.3}Colas, semáforos, mutex, inversión de prioridad y deadlock}{17}{subsection.A.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {B}Parte teórica EGB: Modo Protegido}{18}{appendix.B}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {B.1}Mecanismos de protección de acceso al segmento}{18}{subsection.B.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {B.2}Descriptores de segmento y descriptores de sistema}{18}{subsection.B.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {B.3}Segmento de estado de la tarea (TSS)}{18}{subsection.B.3}\protected@file@percent }
+\bibcite{intel386}{1}
+\bibcite{ldd3}{2}
+\bibcite{pcm1808}{3}
+\bibcite{pcm5102}{4}
+\bibcite{smith_dsp}{5}
+\bibcite{pcf8574}{6}
+\bibcite{ky040}{7}
+\bibcite{pl2303}{8}
+\bibcite{rpi4}{9}
+\bibcite{egb}{10}
+\@writefile{toc}{\contentsline {subsection}{\numberline {B.4}Paginado}{19}{subsection.B.4}\protected@file@percent }
+\gdef \@abspage@last{19}
