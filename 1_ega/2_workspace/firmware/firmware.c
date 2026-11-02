@@ -61,7 +61,7 @@
 #define ENCODER_BUTTON_DEBOUNCE_MS 30U
 #define ENCODER_LONG_PRESS_MS 800U
 #define MEASUREMENT_STALE_MS 150U
-#define DISPLAY_UPDATE_MS 100U
+#define DISPLAY_UPDATE_MS 200U
 #define USB_DIAGNOSTIC_PERIOD_MS 1000U
 
 #define VOLTAGE_SETPOINT_MIN 5.0f
@@ -885,6 +885,18 @@ static void central_apply_uart_command(const uart_event_t *command) {
     if (queue_flash) {
         xQueueSend(flash_queue, &flash_values, 0U);
     }
+}
+
+void vApplicationMallocFailedHook(void) {
+    taskDISABLE_INTERRUPTS();
+    for (;;) tight_loop_contents();
+}
+
+void vApplicationStackOverflowHook(TaskHandle_t task, char *name) {
+    (void)task;
+    (void)name;
+    taskDISABLE_INTERRUPTS();
+    for (;;) tight_loop_contents();
 }
 
 // =====================================================
