@@ -42,11 +42,11 @@ pico_set_program_version(firmware "0.1")
 pico_enable_stdio_uart(firmware 0)
 pico_enable_stdio_usb(firmware 1)
 
-# Keep both Pico SDK USB reset mechanisms enabled so VS Code's Run task can
-# reboot a running board into BOOTSEL without pressing the physical button.
+# Keep both Pico SDK 2.1.1 USB reset mechanisms enabled so VS Code's Run task
+# can reboot a running board into BOOTSEL without pressing the physical button.
 target_compile_definitions(firmware PRIVATE
-    PICO_ENABLE_USB_RESET_VIA_BAUD_RATE=1
-    PICO_ENABLE_USB_RESET_VIA_VENDOR_INTERFACE=1
+    PICO_STDIO_USB_ENABLE_RESET_VIA_BAUD_RATE=1
+    PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=1
 )
 
 target_link_libraries(firmware
@@ -59,6 +59,7 @@ target_link_libraries(firmware
     hardware_pwm
     hardware_clocks
     hardware_uart
+    hardware_irq
     hardware_flash
     pico_flash
 )
