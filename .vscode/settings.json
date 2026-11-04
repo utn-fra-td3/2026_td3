@@ -1,3 +1,4 @@
 {
-    "idf.currentSetup": "C:\\esp\\v6.0\\esp-idf"
+    "idf.currentSetup": "C:\\esp\\v6.0\\esp-idf",
+    "cmake.sourceDirectory": "C:/Users/nico_/OneDrive/Documentos/GitHub/2026_td3_512_nestasio_facundo/4_workspace/freertos"
 }

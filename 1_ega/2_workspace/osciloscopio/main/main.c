@@ -62,7 +62,7 @@ typedef enum {
     ESTADO_AMPLITUD, 
     ESTADO_FLANCO, 
     ESTADO_NIVEL_TRIG,
-    ESTADO_MODO // <-- NUEVO ESTADO PARA EL SELECTOR
+    ESTADO_MODO 
 } estado_menu_t;
 
 typedef enum { FLANCO_ASCENDENTE = 0, FLANCO_DESCENDENTE = 1 } tipo_flanco_t;
@@ -74,7 +74,7 @@ typedef struct {
     uint32_t nivel;
     uint32_t tiempo_ms;
     float amplitud_v;
-    modo_atenuacion_t modo; // <-- NUEVO PARÁMETRO
+    modo_atenuacion_t modo;
 } config_osciloscopio_t;
 
 // Estructura de parámetros para el menú
@@ -97,14 +97,7 @@ typedef struct {
     modo_atenuacion_t modo; // <-- NUEVO PARÁMETRO
 } trama_uart_t;
 
-// ====================================================================
-// EVENTOS HACIA vMenuTask
-// ====================================================================
-// vMenuTask pasa a ser el punto central de procesamiento: vFlash, vEncoder,
-// vComandoUartTask y vButtonTask le avisan lo que pasó mediante esta cola de
-// eventos, en lugar de tocar directamente variables/colas que antes leía
-// por polling. Así vMenuTask puede quedar bloqueada en xQueueReceive()
-// esperando eventos, sin depender de un vTaskDelay() fijo.
+
 typedef enum {
     EVT_BOTON_PRESIONADO,
     EVT_ENCODER,
@@ -124,10 +117,6 @@ typedef struct {
 // ====================================================================
 // COMANDOS HACIA vFlash
 // ====================================================================
-// vMenuTask le pide a vFlash que cargue o guarde la configuración. vFlash
-// responde (cuando corresponde) mandando un EVT_FLASH_CARGADA por
-// menu_evento_queue. Así ninguna de las dos tareas queda bloqueada
-// esperando a la otra.
 typedef enum {
     FLASH_CMD_CARGAR,
     FLASH_CMD_GUARDAR
@@ -214,12 +203,7 @@ static bool cargar_config_de_flash(config_osciloscopio_t *cfg) {
 // 3. RUTINAS DE SERVICIO DE INTERRUPCIÓN (ISRs)
 // ====================================================================
 static void IRAM_ATTR button_isr_handler(void *arg) {
-    // Deshabilitamos la interrupción de ESTE pin específico: así los rebotes
-    // eléctricos posteriores del pulsador no generan más interrupciones — el
-    // pin queda "sordo" hasta que la tarea lo rehabilite después del retardo
-    // antirrebote. Es seguro llamar esta función acá porque instalamos el
-    // servicio de ISR sin ESP_INTR_FLAG_IRAM (flags=0 en gpio_install_isr_service),
-    // lo que garantiza que este handler no corre durante operaciones de flash.
+
     gpio_intr_disable(BUTTON_GPIO);
 
     BaseType_t mustYield = pdFALSE;
@@ -241,21 +225,11 @@ void vButtonTask(void *pvParameters) {
         // Bloqueada en el semáforo sin consumir CPU hasta que la ISR lo entregue
         if (xSemaphoreTake(button_semaphore, portMAX_DELAY) == pdTRUE) {
 
-            // Antes: boton_presionado = true; (variable global leída por polling
-            // desde vMenuTask). Ahora: se lo avisamos a vMenuTask por evento,
-            // tal como indica el esquema ("boton_presionado" -> vMenuTask).
             menu_evento_t evt;
             evt.tipo = EVT_BOTON_PRESIONADO;
             xQueueSend(menu_evento_queue, &evt, portMAX_DELAY);
 
-            // Esperamos a que el pin se estabilice en HIGH (botón soltado)
-            // antes de rehabilitar la interrupción. Un delay fijo solo cubre
-            // el rebote de APRIETE — si el botón se mantiene presionado más
-            // tiempo que ese delay, la interrupción queda rehabilitada
-            // mientras todavía está presionado, y el rebote de SUELTA
-            // (que también incluye flancos de bajada) dispara un evento
-            // falso. Por eso esperamos activamente a que se libere y se
-            // confirme estable, sin importar cuánto se mantuvo presionado.
+
             bool nivel_estable = false;
             while (!nivel_estable) {
                 while (gpio_get_level(BUTTON_GPIO) == 0) {
@@ -271,10 +245,7 @@ void vButtonTask(void *pvParameters) {
     }
 }
 
-// Tarea independiente del encoder rotativo (PCNT). Mantiene la misma lógica
-// de lectura y de umbral de 4 cuentas por "click" que antes vivía adentro de
-// vMenuTask, pero ahora, al detectar un giro, le manda un evento a
-// vMenuTask en vez de que vMenuTask lea el PCNT por polling.
+
 void vEncoder(void *pvParameters) {
     encoder_params_t *params = (encoder_params_t *)pvParameters;
     pcnt_unit_handle_t pcnt_unit = params->pcnt_unit;
@@ -302,11 +273,7 @@ void vEncoder(void *pvParameters) {
     }
 }
 
-// Tarea independiente para la persistencia en flash (NVS). Recibe pedidos de
-// vMenuTask por flash_cmd_queue (cargar / guardar) y, cuando termina de
-// cargar, le devuelve el resultado a vMenuTask como EVT_FLASH_CARGADA por
-// menu_evento_queue. Con esto, vMenuTask nunca queda bloqueada esperando a
-// que termine una operación de NVS.
+
 void vFlash(void *pvParameters) {
     flash_cmd_t cmd;
     while (1) {
@@ -339,17 +306,12 @@ void vMenuTask(void *pvParameters) {
     int sub_opcion = 0;       
     bool refrescar_pantalla = true; 
     
-    // vMenuTask es la dueña del estado de configuración: arma el valor
-    // inicial (defaults) y lo siembra en config_queue de entrada, para no
-    // dejar a las demás tareas (ADC, etc.) esperando. La carga de lo último
-    // guardado en flash se le pide a vFlash por evento y se aplica cuando
-    // llega la respuesta (EVT_FLASH_CARGADA), en vez de bloquear acá.
     config_osciloscopio_t config_activa = {
         .flanco = FLANCO_DESCENDENTE,
         .nivel = 2000,
         .tiempo_ms = 10, // 10 décimas = 1 ms/div, valor por defecto
         .amplitud_v = 1.0,
-        .modo = MODO_X1 // <-- Arranca por defecto en canal 5 (GPIO 6)
+        .modo = MODO_X1 
     };
     xQueueOverwrite(config_queue, &config_activa);
 
@@ -358,10 +320,7 @@ void vMenuTask(void *pvParameters) {
 
     while (1) {
 
-        // vMenuTask ya no hace polling con vTaskDelay(): queda bloqueada acá
-        // esperando el próximo evento de vFlash, vEncoder, vComandoUartTask
-        // o vButtonTask, tal como marca el esquema ("no debe quedar
-        // bloqueada por tiempo").
+
         menu_evento_t evt;
         if (xQueueReceive(menu_evento_queue, &evt, portMAX_DELAY) == pdTRUE) {
 
@@ -403,8 +362,7 @@ void vMenuTask(void *pvParameters) {
                     sub_opcion = 0; 
                 } else {
                     if (estado_actual == ESTADO_TIEMPO) {
-                        // config_activa.tiempo_ms queda expresado en DÉCIMAS de ms
-                        // (5=0.5ms, 10=1ms, 20=2ms, 50=5ms) para poder representar 0.5 sin usar float
+                        
                         if (sub_opcion == 0) config_activa.tiempo_ms = 5;
                         else if (sub_opcion == 1) config_activa.tiempo_ms = 10;
                         else if (sub_opcion == 2) config_activa.tiempo_ms = 20;
@@ -437,11 +395,7 @@ void vMenuTask(void *pvParameters) {
                 }
             }
             else if (evt.tipo == EVT_COMANDO_UART) {
-                // Antes: vComandoUartTask hacía xQueueOverwrite(config_queue, ...)
-                // y guardar_config_en_flash(...) directamente. Eso quedó tachado
-                // en el esquema: ahora vComandoUartTask solo avisa por evento, y
-                // es vMenuTask quien aplica el cambio y le pide a vFlash que
-                // persista la configuración.
+
                 config_activa = evt.data.config_recibida;
                 xQueueOverwrite(config_queue, &config_activa);
 
@@ -752,10 +706,7 @@ void vComandoUartTask(void *pvParameters) {
                 uint16_t chk_calculado = calcular_checksum(buffer_rx, sizeof(comando_pc_t) - 2);
 
                 if (chk_calculado == cmd->checksum) {
-                    // El paquete es válido. Armamos la configuración y avisamos
-                    // a vMenuTask por evento (antes: xQueueOverwrite(config_queue,...)
-                    // y guardar_config_en_flash(...) acá mismo — esa comunicación
-                    // directa quedó tachada en el esquema).
+
                     config_osciloscopio_t nueva_config = {
                         .flanco = cmd->flanco,
                         .nivel = cmd->nivel,
@@ -791,9 +742,7 @@ void vUartTask(void *pvParameters) {
 // ====================================================================
 void app_main(void)
 {
-    // -- Inicializar memoria (tiene que ser lo primero: vFlash va a
-    // llamar a cargar_config_de_flash()/guardar_config_en_flash() apenas
-    // arranque a correr, y eso requiere que NVS ya esté inicializado)
+    
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -817,11 +766,7 @@ void app_main(void)
     
     config_queue = xQueueCreate(1, sizeof(config_osciloscopio_t));
 
-    // Colas nuevas para la arquitectura por eventos hacia vMenuTask.
-    // Profundidad 5 en menu_evento_queue para poder absorber ráfagas de
-    // eventos (encoder + botón + comando UART) sin bloquear a quien envía;
-    // flash_cmd_queue queda en 1, igual que las demás colas tipo mailbox
-    // del programa.
+    
     menu_evento_queue = xQueueCreate(5, sizeof(menu_evento_t));
     flash_cmd_queue = xQueueCreate(1, sizeof(flash_cmd_t));
 

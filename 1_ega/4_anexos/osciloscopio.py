@@ -9,7 +9,7 @@ from pyqtgraph.Qt import QtWidgets, QtCore
 # ==========================================
 # CONFIGURACIÓN DEL SISTEMA
 # ==========================================
-PUERTO = 'COM8'  # <-- REVISAR Y CAMBIAR AL COM DE TU ESP32
+PUERTO = 'COM3'  
 BAUDIOS = 921600
 PUNTOS_PANTALLA = 400
 V_REF = 3.3
@@ -268,7 +268,7 @@ def actualizar_grafico():
     y_volts = np.array(trama['datos'], dtype=np.float64) * (V_REF / 4095.0)
 
     if modo_actual == 1:
-        y_volts = y_volts * 10
+        y_volts = y_volts * 10.5
     elif modo_actual == 2:
         y_volts = (y_volts -1.3)/0.4
 
