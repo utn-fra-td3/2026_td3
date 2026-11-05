@@ -13,6 +13,6 @@ typedef struct {
 } stored_settings_t;
 
 bool settings_storage_load(stored_settings_t *settings);
-void settings_storage_save(const stored_settings_t *settings);
+bool settings_storage_save(const stored_settings_t *settings);
 
 #endif
