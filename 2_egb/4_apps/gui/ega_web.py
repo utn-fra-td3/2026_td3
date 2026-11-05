@@ -50,18 +50,12 @@ input:disabled,button:disabled{cursor:not-allowed;opacity:.48}button:disabled:ho
 <div class="buttons"><button class="on-button" onclick="sendCommand('OUT N ON')">Encender</button><button class="off-button" onclick="sendCommand('OUT N OFF')">Apagar</button><button class="reset-button" id="reset-n" onclick="sendCommand('RESET N')" disabled>Restablecer</button></div></article>
 <article class="card wide"><div class="status-grid"><div><small>Entrada</small><strong><span id="vi">--</span> V</strong></div><div><small>Protecciones</small><strong id="faults">Sin datos</strong></div></div></article></section><p id="message"></p>
 </main><script>
-let refreshBusy=false;let controlRequests=0;const LIMIT_SEND_DELAY_MS=350;const pendingLimitValues=new Map();const limitTimers=new Map();const limitSending=new Set();const $=id=>document.getElementById(id);function showMessage(text,error=false){$('message').textContent=text;$('message').className=error?'error':''}function value(id,data,key){$(id).textContent=data[key]??'--'}
+let busy=false;const $=id=>document.getElementById(id);function showMessage(text,error=false){$('message').textContent=text;$('message').className=error?'error':''}function value(id,data,key){$(id).textContent=data[key]??'--'}
 function renderBranch(branch,data,extended){const outputKey=branch==='P'?'EP':'EN';const ocKey=branch==='P'?'OCP':'OCN';const ovKey=branch==='P'?'OVP':'OVN';const name=branch==='P'?'Positiva':'Negativa';const faults=[];if(data[ocKey]==='1')faults.push('Sobrecorriente (OC)');if(data[ovKey]==='1')faults.push('Sobretensión (OV)');const badge=$(outputKey.toLowerCase());const status=$(`status-${branch.toLowerCase()}`);const on=data[outputKey]==='1';badge.textContent=faults.length?faults.map(item=>item.match(/\((.+)\)/)[1]).join(' + '):(on?'ON':'OFF');badge.className='badge '+(faults.length?'fault':on?'on':'');status.textContent=faults.length?`Protección activa: ${faults.join(' y ')}`:on?'Estado: salida habilitada':'Estado: salida apagada, sin fallas';status.className='branch-status '+(faults.length?'fault':'ok');$(`reset-${branch.toLowerCase()}`).disabled=!extended||faults.length===0;return faults.map(fault=>`${name}: ${fault}`)}
-function render(data){['vi','vp','vn','ip','in','sp','sn'].forEach(id=>value(id,data,id.toUpperCase()));for(const key of ['ILP','ILN','VLP','VLN']){if(!pendingLimitValues.has(key))value(key.toLowerCase(),data,key)}const extended=['VLP','VLN'].every(key=>Object.hasOwn(data,key));const faults=[...renderBranch('P',data,extended),...renderBranch('N',data,extended)];for(const key of ['ILP','ILN','VLP','VLN']){const branch=key.endsWith('P')?'P':'N';const disabled=!extended||data[`E${branch}`]==='1';$(`${key.toLowerCase()}-minus`).disabled=disabled;$(`${key.toLowerCase()}-plus`).disabled=disabled}for(const branch of ['P','N']){$(`limits-${branch.toLowerCase()}`).textContent=!extended?'La edición requiere el firmware UART extendido.':data[`E${branch}`]==='1'?'Apagá la salida para modificar sus límites.':'Ajustá el límite con − y +.'}$('faults').textContent=faults.length?faults.join(' - '):'Sin fallas';$('faults').style.color=faults.length?'var(--red)':'var(--green)';$('dot').style.background='var(--green)';$('connection').textContent='EGA en línea'}
+function render(data){['vi','vp','vn','ip','in','sp','sn','ilp','iln','vlp','vln'].forEach(id=>value(id,data,id.toUpperCase()));const extended=['VLP','VLN'].every(key=>Object.hasOwn(data,key));const faults=[...renderBranch('P',data,extended),...renderBranch('N',data,extended)];for(const key of ['ILP','ILN','VLP','VLN']){const branch=key.endsWith('P')?'P':'N';const disabled=!extended||data[`E${branch}`]==='1';$(`${key.toLowerCase()}-minus`).disabled=disabled;$(`${key.toLowerCase()}-plus`).disabled=disabled}for(const branch of ['P','N']){$(`limits-${branch.toLowerCase()}`).textContent=!extended?'La edición requiere el firmware UART extendido.':data[`E${branch}`]==='1'?'Apagá la salida para modificar sus límites.':'Ajustá el límite con − y +.'}$('faults').textContent=faults.length?faults.join(' - '):'Sin fallas';$('faults').style.color=faults.length?'var(--red)':'var(--green)';$('dot').style.background='var(--green)';$('connection').textContent='EGA en línea'}
 async function request(command,quiet=false){const response=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command})});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||result.response||'Error');if(result.data)render(result.data);if(!quiet)showMessage(result.response);return result}
-function refreshBlocked(){return refreshBusy||controlRequests>0||pendingLimitValues.size>0||limitTimers.size>0||limitSending.size>0}
-async function refresh(){if(refreshBlocked())return;refreshBusy=true;try{await request('GET',true)}catch(error){$('dot').style.background='var(--red)';$('connection').textContent='Sin respuesta';showMessage(error.message,true)}finally{refreshBusy=false}}
-function reflectControl(command){const output=/^OUT ([PN]) (ON|OFF)$/.exec(command);if(output){const branch=output[1];const on=output[2]==='ON';const badge=$(`e${branch.toLowerCase()}`);const status=$(`status-${branch.toLowerCase()}`);badge.textContent=on?'ON':'OFF';badge.className='badge '+(on?'on':'');status.textContent=on?'Estado: salida habilitada':'Estado: salida apagada, sin fallas';status.className='branch-status ok';return}const setting=/^SET ([PN]) ([0-9.]+)$/.exec(command);if(setting){$(setting[1]==='P'?'sp':'sn').textContent=(setting[1]==='P'?'':'-')+Number(setting[2]).toFixed(2)}}
-async function sendCommand(command){controlRequests++;showMessage(`Enviando ${command}...`);try{await request(command);reflectControl(command);return true}catch(error){showMessage(error.message,true);return false}finally{controlRequests--}}
-function setVoltage(branch){const input=$(branch==='P'?'sp-input':'sn-input');sendCommand(`SET ${branch} ${input.value}`)}
-function scheduleLimitCommand(key){if(limitTimers.has(key))clearTimeout(limitTimers.get(key));limitTimers.set(key,setTimeout(()=>{limitTimers.delete(key);flushLimitCommand(key)},LIMIT_SEND_DELAY_MS))}
-async function flushLimitCommand(key){if(limitSending.has(key))return;const pending=pendingLimitValues.get(key);if(!pending)return;limitSending.add(key);await sendCommand(`SET ${key} ${pending.value.toFixed(pending.decimals)}`);limitSending.delete(key);if(pendingLimitValues.get(key)===pending)pendingLimitValues.delete(key);if(pendingLimitValues.has(key))scheduleLimitCommand(key)}
-function adjustLimit(key,delta){const current=Number.parseFloat($(key.toLowerCase()).textContent);if(!Number.isFinite(current)){showMessage('Esperando el valor actual del límite',true);return}const currentLimit=key.startsWith('IL');const minimum=currentLimit?0.10:5.0;const maximum=currentLimit?0.75:40.0;const decimals=currentLimit?2:1;const next=Math.min(maximum,Math.max(minimum,current+delta));if(Math.abs(next-current)<0.001){showMessage('El límite ya está en el extremo permitido');return}$(key.toLowerCase()).textContent=next.toFixed(decimals);pendingLimitValues.set(key,{value:next,decimals});showMessage(`Valor seleccionado: ${key} ${next.toFixed(decimals)}`);scheduleLimitCommand(key)}refresh();setInterval(refresh,1000);
+async function refresh(){if(busy)return;busy=true;try{await request('GET',true)}catch(error){$('dot').style.background='var(--red)';$('connection').textContent='Sin respuesta';showMessage(error.message,true)}finally{busy=false}}
+async function sendCommand(command){busy=true;try{await request(command);await request('GET',true)}catch(error){showMessage(error.message,true)}finally{busy=false}}function setVoltage(branch){const input=$(branch==='P'?'sp-input':'sn-input');sendCommand(`SET ${branch} ${input.value}`)}function adjustLimit(key,delta){const current=Number.parseFloat($(key.toLowerCase()).textContent);if(!Number.isFinite(current)){showMessage('Esperando el valor actual del límite',true);return}const currentLimit=key.startsWith('IL');const minimum=currentLimit?0.10:5.0;const maximum=currentLimit?0.75:40.0;const decimals=currentLimit?2:1;const next=Math.min(maximum,Math.max(minimum,current+delta));if(Math.abs(next-current)<0.001){showMessage('El límite ya está en el extremo permitido');return}sendCommand(`SET ${key} ${next.toFixed(decimals)}`)}refresh();setInterval(refresh,1000);
 </script></body></html>"""
 
 
@@ -98,11 +92,48 @@ def validate_command(command: str) -> bool:
     return True
 
 
+def translate_command(command: str) -> str:
+    """Translate the stable P/N user syntax to the final Pico 0/1 protocol."""
+    command = " ".join(command.upper().strip().split())
+    if not validate_command(command):
+        raise ValueError("Comando no permitido")
+    parts = command.split()
+    if len(parts) == 1:
+        return command
+    branch = "0" if parts[1].endswith("P") or parts[1] == "P" else "1"
+    if parts[0] == "RESET":
+        return f"RST {branch}"
+    if parts[0] == "OUT":
+        return f"OUT {branch} {parts[2]}"
+    setting = parts[1]
+    if setting in ("P", "N"):
+        wire_command = "V"
+    elif setting.startswith("IL"):
+        wire_command = "IL"
+    else:
+        wire_command = "VL"
+    return f"{wire_command} {branch} {parts[2]}"
+
+
+def select_command_response(lines) -> tuple[str, list[str]]:
+    notifications = []
+    for line in lines:
+        if line.startswith("PROT "):
+            notifications.append(line)
+            continue
+        if not line.startswith("OK"):
+            raise RuntimeError(line)
+        return line, notifications
+    raise TimeoutError("La EGA no respondió dentro del timeout")
+
+
 class EgaDevice:
-    def __init__(self, path: str, timeout: float = 1.5):
+    def __init__(self, path: str, timeout: float = 1.5, transport=None):
         self.path = path
         self.timeout = timeout
+        self.transport = transport
         self.lock = threading.Lock()
+        self.last_notifications = []
 
     def close(self):
         pass
@@ -118,13 +149,21 @@ class EgaDevice:
 
     def command(self, command: str) -> str:
         command = " ".join(command.upper().strip().split())
-        if not validate_command(command):
-            raise ValueError("Comando no permitido")
+        wire_command = translate_command(command)
+        if self.transport is not None:
+            self.last_notifications = []
+            response, self.last_notifications = select_command_response(
+                self.transport(wire_command)
+            )
+            if response.startswith("OK QUEUED "):
+                return "OK QUEUED " + command
+            return response
         with self.lock:
+            self.last_notifications = []
             fd = os.open(self.path, os.O_RDWR | os.O_NONBLOCK)
             try:
                 self._drain(fd)
-                payload = (command + "\n").encode("ascii")
+                payload = (wire_command + "\n").encode("ascii")
                 sent = 0
                 while sent < len(payload):
                     sent += os.write(fd, payload[sent:])
@@ -144,9 +183,14 @@ class EgaDevice:
                     for byte in chunk:
                         if byte == 10:
                             text = response.decode("ascii", errors="replace").rstrip("\r")
-                            if not text.startswith("OK"):
-                                raise RuntimeError(text)
-                            return text
+                            response.clear()
+                            if text.startswith("PROT "):
+                                self.last_notifications.append(text)
+                                continue
+                            selected, _ = select_command_response([text])
+                            if selected.startswith("OK QUEUED "):
+                                return "OK QUEUED " + command
+                            return selected
                         response.append(byte)
                 raise TimeoutError("La EGA no respondió dentro del timeout")
             finally:
@@ -192,11 +236,16 @@ class RequestHandler(BaseHTTPRequestHandler):
             request = json.loads(self.rfile.read(length))
             response = self.device.command(str(request.get("command", "")))
             payload = {"ok": True, "response": response}
+            if self.device.last_notifications:
+                payload["notifications"] = list(self.device.last_notifications)
             if response.startswith("OK VI="):
                 payload["data"] = parse_status(response)
             self.send_json(200, payload)
         except (ValueError, RuntimeError, TimeoutError, OSError) as error:
-            self.send_json(400, {"ok": False, "error": str(error)})
+            payload = {"ok": False, "error": str(error)}
+            if self.device.last_notifications:
+                payload["notifications"] = list(self.device.last_notifications)
+            self.send_json(400, payload)
 
     def log_message(self, message, *args):
         print(f"{self.address_string()} - {message % args}")

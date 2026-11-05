@@ -2,61 +2,56 @@ GUÍA DE USUARIO DEL PANEL WEB EGA
 
 Requisitos
 ----------
-- Módulo ega_uart cargado.
-- Dispositivo /dev/ega_uart disponible para el usuario.
-- Raspberry Pi Pico conectada por UART a 115200 bit/s.
-- Python 3.
+- Módulo ega_uart cargado y /dev/ega_uart accesible para el usuario del servicio.
+- Zero y Pico conectadas por UART a 115200 bit/s, con masa común.
+- Python 3 y red para acceder al panel desde otra computadora.
 
-Inicio manual
--------------
-python3 ega_web.py
+Inicio
+------
+Para iniciar manualmente desde este directorio: python3 ega_web.py
+La dirección es http://direccion-de-la-zero:8080. El servidor admite --device,
+--host, --port y --timeout para cambiar las opciones predeterminadas.
 
-El panel queda disponible en:
-http://direccion-de-la-raspberry:8080
-
-También puede seleccionarse otro dispositivo o puerto:
-python3 ega_web.py --device /dev/ega_uart --host 0.0.0.0 --port 8080
-
-Inicio como servicio
---------------------
-El instalador copia ega-web.service y lo habilita para iniciar con la Raspberry Pi.
-
-Comandos útiles:
-sudo systemctl start ega-web
-sudo systemctl stop ega-web
-sudo systemctl restart ega-web
-sudo systemctl status ega-web
+El 5 de noviembre de 2026 se comprobó que ega-web.service estaba activo en
+la Zero y ejecutaba /opt/ega-egb/ega_web.py. El archivo remoto coincidía por
+SHA-256 con la versión de este directorio. Eso no prueba por sí solo que el
+módulo y el overlay se carguen tras cada reinicio ni que la Pico responda.
+Para diagnosticar el servicio: sudo systemctl status ega-web.
 
 Uso del panel
 -------------
-1. Abrir el panel desde un navegador conectado a la misma red.
-2. Confirmar que el indicador muestre "EGA en línea".
-3. Cada tarjeta muestra tensión, corriente, referencia, límites y estado de una rama.
-4. Para cambiar la tensión, escribir un valor entre 0 y 30 V y presionar Aplicar.
-5. Los límites de corriente se modifican en pasos de 0,05 A, entre 0,10 y 0,75 A.
-6. Los límites de sobretensión se modifican en pasos de 0,5 V, entre 5 y 40 V.
-7. Los límites sólo pueden cambiarse con la salida correspondiente apagada.
-8. Encender y Apagar controlan cada rama de manera independiente.
-9. Restablecer borra una falla OC/OV, pero no vuelve a encender la salida.
-10. Guardar configuración almacena las referencias y los límites en la memoria flash.
+1. Abrir el panel desde un equipo en la misma red.
+2. Esperar la primera respuesta de estado. «EGA en línea» significa que la
+   consulta GET recibió datos; no certifica una tensión física concreta.
+3. Cada tarjeta muestra tensión medida, corriente, consigna, límites y fallas.
+4. Para ajustar una consigna admitida por el firmware Pico, usar de 5 a 30 V.
+   El campo web todavía permite de 0 a 30 V: un valor menor que 5 V llega
+   traducido a la Pico, pero ella responde ERR RANGE.
+5. Los límites de corriente se editan en pasos de 0,05 A entre 0,10 y 0,75 A.
+   Los de sobretensión se editan entre 5 y 40 V en pasos de 0,5 V.
+6. Apagar la rama correspondiente antes de cambiar sus límites.
+7. Encender y Apagar controlan cada rama; Restablecer solicita borrar la falla
+   OC/OV y mantiene la salida apagada.
+8. Guardar configuración envía SAVE. «OK QUEUED» significa que se aceptó la
+   solicitud en la cola central, no que la escritura Flash ya fue verificada.
 
-Indicaciones de seguridad
--------------------------
-- Antes de habilitar una rama, comprobar la carga y los límites configurados.
-- Si aparece OC u OV, retirar la causa y utilizar Restablecer.
-- La protección permanece en el firmware de la Pico; el navegador sólo supervisa y envía órdenes.
-- No desconectar GND, TX o RX mientras se realiza una operación.
+Qué hace la página al pulsar un control
+--------------------------------------
+El navegador envía POST /api/command con una orden como SET P 12.5. El servidor
+la convierte en V 0 12.5 antes de escribir /dev/ega_uart. Tras una respuesta
+correcta, la página hace una consulta GET inmediata y sigue consultando cada
+segundo. Cada clic en + o − de un límite envía una orden; esta versión no agrupa
+varios clics ni aplica demora entre ellos. Si aparece PROT, el servidor separa
+ese aviso de la respuesta al comando.
 
 Diagnóstico básico
 ------------------
-"Sin respuesta"
-    Verificar la alimentación de la Pico, el cableado UART y /dev/ega_uart.
+«Sin respuesta»: comprobar alimentación de Pico, enlace UART, módulo, nodo
+/dev/ega_uart y permisos. El servicio puede estar activo sin enlace funcional.
+«Comando no permitido»: la validación web rechazó el formato o el rango.
+«ERR RANGE»: la Pico rechazó un valor; revisar especialmente consignas < 5 V.
+Un límite no cambia: apagar la salida y consultar estado de nuevo. «OK QUEUED»
+no equivale a que el nuevo límite se haya aplicado.
 
-"Comando no permitido"
-    El valor está fuera de rango o la orden no tiene el formato esperado.
-
-El panel no modifica un límite
-    Apagar primero la rama correspondiente y volver a intentarlo.
-
-El servicio no inicia
-    Ejecutar systemctl status ega-web y comprobar los permisos de /dev/ega_uart.
+La protección se ejecuta en el firmware Pico. El navegador la muestra y envía
+órdenes; no reemplaza la protección local de la placa.
