@@ -1,0 +1,11 @@
+build/
+/build_local/
+/.venv/
+__pycache__/
+*.bin
+*.elf
+*.map
+sdkconfig
+sdkconfig.old
+.vscode/
+.DS_Store
