@@ -1,0 +1,9 @@
+idf_component_register(
+    SRCS
+        "main.c"
+        "ad9834_driver.c"
+        "frequency_sweep.c"
+        "uart_console.c"
+    INCLUDE_DIRS
+        "."
+)

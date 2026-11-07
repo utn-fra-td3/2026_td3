@@ -1,0 +1,28 @@
+setup_once: |
+  $env:Path = "C:\Espressif\tools\python;$env:Path"
+  $env:IDF_TOOLS_PATH = 'C:\Espressif'
+  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+  & C:\ESP32\esp-idf\install.ps1 esp32
+  Set-Location 'C:\CV_Tools\Automation\2026_td3\1_ega\2_workspace\firmware'
+  & C:\Espressif\tools\python\python.exe -m venv .venv
+  .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+
+firmware_terminal: |
+  $env:Path = "C:\Espressif\tools\python;$env:Path"
+  $env:IDF_TOOLS_PATH = 'C:\Espressif'
+  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+  . C:\ESP32\esp-idf\export.ps1
+  Set-Location 'C:\CV_Tools\Automation\2026_td3\1_ega\2_workspace\firmware'
+  idf.py -B build_local build
+  idf.py -B build_local -p COM4 flash
+  idf.py -B build_local -p COM4 monitor
+
+gui_terminal: |
+  Set-Location 'C:\CV_Tools\Automation\2026_td3\1_ega\2_workspace\firmware'
+  .\.venv\Scripts\python.exe uart_terminal.py --port COM4 --baud 115200 --gui
+
+notes:
+  - "Exit the serial monitor with Ctrl+] before opening the GUI."
+  - "Close the GUI before flashing or monitoring: COM4 has one owner at a time."
+  - "Do not reuse build/: its cache contains paths from the previous PC."
+  - "The GUI waveform preview is synthetic, not an oscilloscope measurement."
