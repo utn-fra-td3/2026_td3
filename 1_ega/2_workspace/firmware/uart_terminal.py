@@ -2,12 +2,15 @@
 """Interactive UART terminal and simple GUI control for the ESP32 frequency-response analyzer."""
 
 import argparse
+import csv
 import math
 import os
+import queue
 import re
+import threading
 import time
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 
 try:
     import serial
@@ -23,6 +26,129 @@ except Exception:  # pragma: no cover
 
 HISTORY_FILE = os.path.join(os.path.expanduser("~"), ".esp32_uart_history.txt")
 MAX_DDS_FREQUENCY_HZ = 37_500_000
+MEASUREMENT_FIELDS = (
+    "F", "SEQ", "T_US", "SOURCE", "MAG_RAW", "PHASE_RAW", "MAG_MV", "PHASE_MV",
+    "MAG_SPAN", "PHASE_SPAN", "FLAGS",
+)
+
+
+def parse_measurement_line(text):
+    if not text.startswith("DATA:"):
+        return None
+    columns = next(csv.reader([text], strict=True))
+    if columns[0] != "DATA:V1":
+        raise ValueError("unsupported measurement protocol")
+    sample = {}
+    for column in columns[1:]:
+        key, separator, value = column.partition("=")
+        if not separator or key not in MEASUREMENT_FIELDS or key in sample:
+            raise ValueError("invalid or duplicate measurement field")
+        sample[key] = value if key == "SOURCE" else int(value)
+    if set(sample) != set(MEASUREMENT_FIELDS):
+        raise ValueError("incomplete measurement")
+    if sample["SOURCE"] not in {"SIM", "ADC"}:
+        raise ValueError("unknown measurement source")
+    if not 1 <= sample["F"] <= MAX_DDS_FREQUENCY_HZ or sample["SEQ"] < 0 or sample["T_US"] < 0:
+        raise ValueError("invalid measurement frequency or sequence")
+    if not 0 <= sample["FLAGS"] <= 15:
+        raise ValueError("unknown measurement flags")
+    simulated = sample["SOURCE"] == "SIM"
+    if bool(sample["FLAGS"] & 1) != simulated:
+        raise ValueError("measurement source/flags mismatch")
+    for key in ("MAG_RAW", "PHASE_RAW", "MAG_SPAN", "PHASE_SPAN"):
+        if (simulated and sample[key] != -1) or (not simulated and not 0 <= sample[key] <= 4095):
+            raise ValueError("invalid raw measurement")
+    for key in ("MAG_MV", "PHASE_MV"):
+        if sample["FLAGS"] & 2:
+            if sample[key] != -1:
+                raise ValueError("uncalibrated ADC must not report millivolts")
+        elif not 0 <= sample[key] <= 3300:
+            raise ValueError("invalid measurement voltage")
+    sample["GAIN_DB"] = None if sample["MAG_MV"] < 0 else (sample["MAG_MV"] - 900.0) / 30.0
+    sample["PHASE_FOLDED_DEG"] = None if sample["PHASE_MV"] < 0 else (1800.0 - sample["PHASE_MV"]) / 10.0
+    sample["CALIBRATION"] = "NOMINAL_DETECTOR"
+    return sample
+
+
+def export_measurements(path, samples):
+    fields = (*MEASUREMENT_FIELDS, "GAIN_DB", "PHASE_FOLDED_DEG", "CALIBRATION")
+    with open(path, "w", newline="", encoding="utf-8") as output:
+        writer = csv.DictWriter(output, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(samples)
+
+
+def simulate_command(cmd, frequency_hz=1000, on_line=None):
+    tokens = cmd.split()
+    command = tokens[0].upper() if tokens else ""
+    if command == "PING":
+        lines = ["OK:PONG"]
+    elif command == "STATUS":
+        lines = [f"OK:FREQ={frequency_hz},MODE=SINE,SOURCE=SIM"]
+    elif command in {"MEAS", "MSWEEP"} and len(tokens) > 1 and tokens[1] == "SIM":
+        if command == "MEAS" and len(tokens) == 2:
+            start, stop, step, dwell = frequency_hz, frequency_hz, 1, 0
+        elif command == "MSWEEP" and len(tokens) == 6:
+            start, stop, step, dwell = map(int, tokens[2:])
+            if not (1 <= start <= stop <= MAX_DDS_FREQUENCY_HZ and
+                    1 <= step <= MAX_DDS_FREQUENCY_HZ and 1 <= dwell <= 60000):
+                raise ValueError("invalid simulated sweep configuration")
+        else:
+            raise ValueError("invalid simulated measurement command")
+        lines = []
+        for sequence, frequency in enumerate(range(start, stop + 1, step)):
+            ratio = frequency / 100000.0
+            mag_mv = 900.0 - 300.0 * math.log10(1.0 + ratio * ratio)
+            phase_mv = 1800.0 - 10.0 * math.degrees(math.atan(ratio))
+            flags = 9
+            if mag_mv < 30 or mag_mv > 1770 or phase_mv < 30 or phase_mv > 1770:
+                flags |= 4
+            mag_mv = int(math.floor(max(30.0, min(1800.0, mag_mv)) + 0.5))
+            phase_mv = int(math.floor(max(30.0, min(1800.0, phase_mv)) + 0.5))
+            lines.append(f"DATA:V1,F={frequency},SEQ={sequence},T_US={sequence * dwell * 1000},"
+                         f"SOURCE=SIM,MAG_RAW=-1,PHASE_RAW=-1,MAG_MV={mag_mv},PHASE_MV={phase_mv},"
+                         f"MAG_SPAN=-1,PHASE_SPAN=-1,FLAGS={flags}")
+        lines.append(f"OK:{command}_DONE")
+    else:
+        lines = ["ERR:offline simulator supports PING, STATUS, MEAS SIM and MSWEEP SIM only"]
+    if on_line is not None:
+        for line in lines:
+            on_line(line)
+    return lines
+
+
+def validate_measurement_sweep(samples, cmd):
+    tokens = cmd.split()
+    if tokens and tokens[0].upper() == "MEAS":
+        if len(tokens) != 2 or len(samples) != 1 or samples[0]["SEQ"] != 0 or samples[0]["SOURCE"] != tokens[1]:
+            raise ValueError("incomplete or mismatched single measurement")
+    if tokens and tokens[0].upper() == "MSWEEP":
+        start, stop, step, _ = map(int, tokens[2:])
+        expected_count = (stop - start) // step + 1
+        if len(samples) != expected_count:
+            raise ValueError("incomplete measurement sweep")
+        for sequence, sample in enumerate(samples):
+            if sample["SEQ"] != sequence or sample["F"] != start + sequence * step or sample["SOURCE"] != tokens[1]:
+                raise ValueError("measurement sequence, frequency or source mismatch")
+
+
+def command_timing(cmd):
+    tokens = cmd.split()
+    command = tokens[0].upper() if tokens else ""
+    if command == "MEAS":
+        return 5.0, 5.0, "OK:MEAS_DONE"
+    if command in {"SWEEP", "MSWEEP"}:
+        values = tokens[2:] if command == "MSWEEP" else tokens[1:]
+        try:
+            start, stop, step, dwell = map(int, values)
+            if not (1 <= start <= stop <= MAX_DDS_FREQUENCY_HZ and
+                    1 <= step <= MAX_DDS_FREQUENCY_HZ and 1 <= dwell <= 60000):
+                raise ValueError("invalid sweep configuration")
+        except ValueError:
+            return 5.0, 5.0, "OK:" + command + "_DONE"
+        point_count = (stop - start) // step + 1
+        return 10.0 + point_count * (dwell / 1000.0 + 0.1), max(5.0, dwell / 1000.0 + 3.0), "OK:" + command + "_DONE"
+    return 1.5, 1.5, None
 
 
 def parse_frequency_status(text):
@@ -79,44 +205,60 @@ def generate_waveform_points(freq_hz, wave="SINE", sample_count=200, amplitude=1
     return points
 
 
-def read_serial_lines(ser, timeout=1.0):
-    end = time.time() + timeout
+def read_serial_lines(ser, timeout=1.0, idle_timeout=None, completion=None, on_line=None):
+    deadline = time.monotonic() + timeout
+    idle_deadline = time.monotonic() + (idle_timeout or timeout)
     chunks = []
-    while time.time() < end:
-        if ser.in_waiting:
-            raw = ser.readline()
-            if not raw:
-                continue
-            text = raw.decode("utf-8", errors="ignore").strip()
+    pending = bytearray()
+    while time.monotonic() < min(deadline, idle_deadline):
+        raw = ser.read(ser.in_waiting or 1)
+        if raw:
+            idle_deadline = time.monotonic() + (idle_timeout or timeout)
+            pending.extend(raw)
+        while b"\n" in pending:
+            line, _, remainder = pending.partition(b"\n")
+            pending = bytearray(remainder)
+            if len(line) > 4096:
+                raise ValueError("UART line exceeds maximum size")
+            text = line.decode("utf-8", errors="replace").strip()
             if text:
                 chunks.append(text)
-                if text.startswith("OK:") or text.startswith("ERR:"):
-                    break
-        else:
-            time.sleep(0.02)
-    return chunks
+                if on_line is not None:
+                    on_line(text)
+                if text.startswith("ERR:") or (text == completion if completion else text.startswith("OK:")):
+                    return chunks
+        if len(pending) > 4096:
+            raise ValueError("UART line exceeds maximum size")
+    raise TimeoutError("UART response timed out before completion")
 
 
-def send_cmd(ser, cmd):
+def send_cmd(ser, cmd, on_line=None):
     if not cmd:
         return []
     ser.write((cmd + "\r\n").encode("ascii"))
     ser.flush()
-    time.sleep(0.05)
-    lines = read_serial_lines(ser, timeout=1.5)
-    return lines
+    timeout, idle_timeout, completion = command_timing(cmd)
+    return read_serial_lines(ser, timeout, idle_timeout, completion, on_line)
 
 
 class UARTTerminalApp:
-    def __init__(self, port, baud):
+    def __init__(self, port, baud, simulate=False):
         self.root = tk.Tk()
-        self.root.title(f"ESP32 UART Control - {port}")
+        self.root.title(f"ESP32 UART Control - {'OFFLINE SIM' if simulate else port}")
         self.root.geometry("900x600")
         self.root.minsize(700, 500)
 
         self.port = port
         self.baud = baud
         self.ser = None
+        self.simulate = simulate
+        self.transaction_busy = False
+        self.transaction_events = queue.Queue()
+        self.measurements = []
+        self.measurements_complete = False
+        self.legacy_points = []
+        self.active_command = ""
+        self.transaction_error = False
         self.history = self._load_history()
         self.history_index = 0
         self.current_frequency = 1000
@@ -128,6 +270,7 @@ class UARTTerminalApp:
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
         self._build_ui()
         self._connect_serial()
+        self.root.after(50, self._poll_transaction)
 
     def _load_history(self):
         if not os.path.exists(HISTORY_FILE):
@@ -254,7 +397,7 @@ class UARTTerminalApp:
 
         sweep_frame = ttk.LabelFrame(parent, text="Sweep", padding=10)
         sweep_frame.pack(fill="x", pady=(0, 8))
-        ttk.Label(sweep_frame, text="Start/Stop/Step/Dwell:").pack(anchor="w")
+        ttk.Label(sweep_frame, text="Start(Hz)/Stop(Hz)/Step(Hz)/Dwell(ms):").pack(anchor="w")
         self.sweep_start = tk.StringVar(value="1000")
         self.sweep_stop = tk.StringVar(value="200000")
         self.sweep_step = tk.StringVar(value="1000")
@@ -267,7 +410,16 @@ class UARTTerminalApp:
         ttk.Entry(entries, textvariable=self.sweep_dwell, width=8).pack(side="left", padx=4)
         ttk.Button(sweep_frame, text="SWEEP", command=self._sweep).pack(fill="x", pady=(8, 0))
 
-        signal_frame = ttk.LabelFrame(parent, text="DDS signal", padding=10)
+        measurement_frame = ttk.LabelFrame(parent, text="AD8302", padding=10)
+        measurement_frame.pack(fill="x", pady=(0, 8))
+        self.measurement_source = tk.StringVar(value="SIM")
+        ttk.Combobox(measurement_frame, textvariable=self.measurement_source,
+                 values=["SIM"] if self.simulate else ["SIM", "ADC"], state="readonly", width=8).pack(side="left", padx=(0, 6))
+        ttk.Button(measurement_frame, text="MEAS", command=lambda: self._send_cmd(f"MEAS {self.measurement_source.get()}")).pack(side="left", padx=(0, 6))
+        ttk.Button(measurement_frame, text="MSWEEP", command=self._measurement_sweep).pack(side="left", padx=(0, 6))
+        ttk.Button(measurement_frame, text="Export CSV", command=self._export_measurements).pack(side="left")
+
+        signal_frame = ttk.LabelFrame(parent, text="DDS preview (synthetic)", padding=10)
         signal_frame.pack(fill="x", pady=(0, 8))
         ttk.Label(signal_frame, textvariable=self.signal_label_var, font=("TkDefaultFont", 10, "bold")).pack(anchor="w")
         self.signal_canvas = tk.Canvas(signal_frame, bg="#f8fafc", height=180, width=320)
@@ -278,6 +430,10 @@ class UARTTerminalApp:
         plot_frame.pack(fill="both", expand=True)
         self.plot_canvas = tk.Canvas(plot_frame, bg="white", height=220, width=320)
         self.plot_canvas.pack(fill="both", expand=True)
+        self.phase_canvas = tk.Canvas(plot_frame, bg="white", height=220, width=320)
+        self.phase_canvas.pack(fill="both", expand=True)
+        self.plot_canvas.bind("<Configure>", lambda event: self._redraw_measurements())
+        self.phase_canvas.bind("<Configure>", lambda event: self._redraw_measurements())
 
     def _add_output(self, msg):
         self.output.configure(state="normal")
@@ -296,6 +452,9 @@ class UARTTerminalApp:
 
     def _update_signal_monitor(self, text):
         if not text:
+            return
+
+        if text.startswith("DATA:"):
             return
 
         if text.startswith("> "):
@@ -351,6 +510,13 @@ class UARTTerminalApp:
             self.signal_canvas.create_line(x1, y1, x2, y2, fill="#2563eb", width=2)
 
     def _connect_serial(self):
+        if self.transaction_busy:
+            self._add_output("ERR: transaction in progress")
+            return
+        if self.simulate:
+            self.status_var.set("SIM | offline | nominal detector")
+            self._add_output("SOURCE=SIM: offline 100 kHz low-pass DUT model")
+            return
         port = self.port_var.get().strip()
         if not port:
             messagebox.showerror("Port missing", "Please enter a valid serial port.")
@@ -384,7 +550,10 @@ class UARTTerminalApp:
             self._add_output(f"Connection error: could not open port '{port}': {exc}")
 
     def _send_cmd(self, cmd):
-        if self.ser is None or not self.ser.is_open:
+        if self.transaction_busy:
+            self._add_output("ERR: transaction in progress")
+            return
+        if not self.simulate and (self.ser is None or not self.ser.is_open):
             self._add_output("ERR: serial port is not open")
             return
         self._add_output(f"> {cmd}")
@@ -392,9 +561,63 @@ class UARTTerminalApp:
         self.history.append(cmd)
         self._save_history()
         self.history_index = len(self.history)
-        lines = send_cmd(self.ser, cmd)
-        for line in lines:
-            self._add_output(line)
+        self.active_command = cmd
+        self.transaction_error = False
+        command = cmd.split()[0].upper()
+        if command in {"MEAS", "MSWEEP"}:
+            self.measurements = []
+            self.measurements_complete = False
+        if command == "SWEEP":
+            self.measurements = []
+            self.measurements_complete = False
+            self.legacy_points = []
+        self.transaction_busy = True
+        def worker():
+            try:
+                callback = lambda line: self.transaction_events.put(("line", line))
+                if self.simulate:
+                    simulate_command(cmd, self.current_frequency, callback)
+                else:
+                    send_cmd(self.ser, cmd, callback)
+            except (serial.SerialException, OSError, ValueError, TimeoutError) as exc:
+                self.transaction_events.put(("error", str(exc)))
+            finally:
+                self.transaction_events.put(("done", None))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _poll_transaction(self):
+        while not self.transaction_events.empty():
+            kind, value = self.transaction_events.get_nowait()
+            if kind == "done":
+                self.transaction_busy = False
+                if not self.transaction_error:
+                    try:
+                        validate_measurement_sweep(self.measurements, self.active_command)
+                    except ValueError as exc:
+                        self.transaction_error = True
+                        self._add_output(f"ERR:{exc}")
+                self.status_var.set("INCOMPLETE" if self.transaction_error else "COMPLETE")
+                if self.active_command.split()[0].upper() in {"MEAS", "MSWEEP"}:
+                    self.measurements_complete = not self.transaction_error
+                self._redraw_measurements()
+            elif kind == "error":
+                self.transaction_error = True
+                self._add_output(f"ERR:{value}")
+            else:
+                self._add_output(value)
+                if value.startswith("ERR:"):
+                    self.transaction_error = True
+                try:
+                    sample = parse_measurement_line(value)
+                    if sample is not None:
+                        self.measurements.append(sample)
+                    match = re.fullmatch(r"f\s*=\s*(\d+)\s*Hz\s*\|\s*ADC\s*=\s*(\d+)", value, re.IGNORECASE)
+                    if match:
+                        self.legacy_points.append((int(match[1]), int(match[2])))
+                except (ValueError, csv.Error) as exc:
+                    self.transaction_error = True
+                    self._add_output(f"ERR:invalid measurement: {exc}")
+        self.root.after(50, self._poll_transaction)
 
     def _send_current_cmd(self):
         cmd = self.command_var.get().strip()
@@ -427,23 +650,29 @@ class UARTTerminalApp:
         self.output.delete("1.0", tk.END)
         self.output.configure(state="disabled")
 
-    def _draw_plot(self, points):
-        self.plot_canvas.delete("all")
+    def _draw_plot(self, points, canvas=None, label="ADC raw", color="#16856b", phase=False):
+        canvas = self.plot_canvas if canvas is None else canvas
+        canvas.delete("all")
+        canvas.create_text(8, 8, anchor="nw", text=label, fill="#374151")
         if not points:
-            self.plot_canvas.create_text(10, 10, anchor="nw", text="No data yet", fill="#3b82f6")
             return
 
-        w = self.plot_canvas.winfo_width() or 600
-        h = self.plot_canvas.winfo_height() or 220
+        w = max(320, canvas.winfo_width())
+        h = max(180, canvas.winfo_height())
 
-        left_pad, right_pad, top_pad, bottom_pad = 30, 20, 20, 30
+        left_pad, right_pad, top_pad, bottom_pad = 48, 20, 35, 30
         plot_w = max(1, w - left_pad - right_pad)
         plot_h = max(1, h - top_pad - bottom_pad)
 
-        xs = [p[0] for p in points]
-        ys = [p[1] for p in points]
+        xs = [math.log10(point[0]) for point in points]
+        ys = [point[1] for point in points if point[1] is not None]
+        if not ys:
+            canvas.create_text(8, 28, anchor="nw", text="No valid converted samples", fill="#b45309")
+            return
         x_min, x_max = min(xs), max(xs)
         y_min, y_max = min(ys), max(ys)
+        if phase:
+            y_min, y_max = 0, 180
         if x_min == x_max:
             x_min -= 1
             x_max += 1
@@ -451,53 +680,65 @@ class UARTTerminalApp:
             y_min -= 1
             y_max += 1
 
-        self.plot_canvas.create_line(left_pad, top_pad, left_pad, h - bottom_pad, fill="#374151")
-        self.plot_canvas.create_line(left_pad, h - bottom_pad, w - right_pad, h - bottom_pad, fill="#374151")
+        canvas.create_line(left_pad, top_pad, left_pad, h - bottom_pad, fill="#374151")
+        canvas.create_line(left_pad, h - bottom_pad, w - right_pad, h - bottom_pad, fill="#374151")
 
         for i in range(5):
             py = top_pad + (plot_h * i / 4)
-            self.plot_canvas.create_line(left_pad, py, w - right_pad, py, fill="#e5e7eb")
+            canvas.create_line(left_pad, py, w - right_pad, py, fill="#e5e7eb")
+            canvas.create_text(left_pad - 4, py, anchor="e", text=f"{y_max - (y_max - y_min) * i / 4:.1f}")
+        canvas.create_text(left_pad, h - 12, anchor="w", text=f"{points[0][0]:g} Hz")
+        canvas.create_text(w - right_pad, h - 12, anchor="e", text=f"{points[-1][0]:g} Hz")
 
         plot_points = []
         for freq, adc in points:
-            px = left_pad + ((freq - x_min) / (x_max - x_min + 1e-9)) * plot_w
+            if adc is None:
+                plot_points.append(None)
+                continue
+            px = left_pad + ((math.log10(freq) - x_min) / (x_max - x_min + 1e-9)) * plot_w
             py = h - bottom_pad - ((adc - y_min) / (y_max - y_min + 1e-9)) * plot_h
             plot_points.append((px, py))
 
         for i in range(1, len(plot_points)):
+            if plot_points[i - 1] is None or plot_points[i] is None:
+                continue
             x1, y1 = plot_points[i - 1]
             x2, y2 = plot_points[i]
-            self.plot_canvas.create_line(x1, y1, x2, y2, fill="#22c55e", width=2)
+            canvas.create_line(x1, y1, x2, y2, fill=color, width=2)
 
-        for x, y in plot_points[:1]:
-            self.plot_canvas.create_oval(x - 3, y - 3, x + 3, y + 3, fill="#22c55e")
-        for x, y in plot_points[-1:]:
-            self.plot_canvas.create_oval(x - 3, y - 3, x + 3, y + 3, fill="#22c55e")
+        for point in plot_points[:1] + plot_points[-1:]:
+            if point is not None:
+                x, y = point
+                canvas.create_oval(x - 3, y - 3, x + 3, y + 3, fill=color)
 
-    def _consume_sweep_points(self):
-        points = []
-        if self.ser is None or not self.ser.is_open:
-            return points
+    def _redraw_measurements(self):
+        if self.measurements:
+            source = self.measurements[0]["SOURCE"]
+            state = "nominal" if self.measurements_complete else "incomplete"
+            gain = [(sample["F"], None if sample["FLAGS"] & 6 else sample["GAIN_DB"]) for sample in self.measurements]
+            phase = [(sample["F"], None if sample["FLAGS"] & 6 else sample["PHASE_FOLDED_DEG"]) for sample in self.measurements]
+            self._draw_plot(gain, label=f"Gain (dB) | {source} | {state}")
+            self._draw_plot(phase, self.phase_canvas, f"Folded phase (deg) | {source} | {state}", "#c15b39", True)
+        else:
+            self._draw_plot(self.legacy_points)
+            self._draw_plot([], self.phase_canvas, "Folded phase (deg)")
 
-        deadline = time.time() + 8.0
-        while time.time() < deadline:
-            if self.ser.in_waiting:
-                raw = self.ser.readline()
-                if not raw:
-                    continue
-                text = raw.decode("utf-8", errors="ignore").strip()
-                if not text:
-                    continue
-                self._add_output(text)
-                match = re.search(r"f\s*=\s*(\d+)\s*Hz\s*\|\s*ADC\s*=\s*(\d+)", text, re.IGNORECASE)
-                if match:
-                    points.append((int(match.group(1)), int(match.group(2))))
-            else:
-                time.sleep(0.05)
-        self._draw_plot(points)
-        return points
+    def _export_measurements(self):
+        if self.transaction_busy or not self.measurements_complete or not self.measurements:
+            self._add_output("ERR: export requires a completed measurement transaction")
+            return
+        path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV", "*.csv")])
+        if path:
+            try:
+                export_measurements(path, self.measurements)
+                self._add_output(f"CSV:{path}")
+            except OSError as exc:
+                self._add_output(f"ERR:{exc}")
 
     def _set_frequency(self):
+        if self.transaction_busy:
+            self._add_output("ERR: transaction in progress")
+            return
         freq = self.freq_var.get().strip()
         if freq:
             try:
@@ -517,6 +758,9 @@ class UARTTerminalApp:
             self._send_cmd(f"SETF {freq}")
 
     def _set_waveform(self):
+        if self.transaction_busy:
+            self._add_output("ERR: transaction in progress")
+            return
         wave = self.wave_var.get().strip().upper()
         self.current_wave = wave if wave in {"SINE", "TRI", "SQUARE"} else "SINE"
         self.last_manual_state_update = time.monotonic()
@@ -531,7 +775,10 @@ class UARTTerminalApp:
             f"{self.sweep_step.get()} {self.sweep_dwell.get()}"
         )
         self._send_cmd(cmd)
-        self._consume_sweep_points()
+
+    def _measurement_sweep(self):
+        self._send_cmd(f"MSWEEP {self.measurement_source.get()} {self.sweep_start.get()} "
+                       f"{self.sweep_stop.get()} {self.sweep_step.get()} {self.sweep_dwell.get()}")
 
     def run(self):
         self.root.mainloop()
@@ -542,12 +789,41 @@ def cli_main():
     parser.add_argument("--port", default="COM5", help="Serial port, e.g. COM5")
     parser.add_argument("--baud", type=int, default=115200, help="UART baud rate")
     parser.add_argument("--gui", action="store_true", help="Launch the Tkinter GUI")
+    parser.add_argument("--simulate", action="store_true", help="Offline detector simulation; no serial port opened")
+    parser.add_argument("--command", help="Execute one command and exit")
+    parser.add_argument("--csv", help="Export a completed --command measurement to CSV")
     args = parser.parse_args()
 
+    if args.gui and (args.command or args.csv):
+        parser.error("--command and --csv cannot be combined with --gui")
+
     if args.gui:
-        app = UARTTerminalApp(args.port, args.baud)
+        app = UARTTerminalApp(args.port, args.baud, args.simulate)
         app.run()
         return
+
+    if args.command:
+        try:
+            if args.simulate:
+                lines = simulate_command(args.command)
+            else:
+                with serial.Serial(args.port, args.baud, timeout=0.1) as port:
+                    lines = send_cmd(port, args.command)
+            for line in lines:
+                print(line)
+            if any(line.startswith("ERR:") for line in lines):
+                raise ValueError("command rejected")
+            samples = [sample for line in lines if (sample := parse_measurement_line(line)) is not None]
+            validate_measurement_sweep(samples, args.command)
+            if args.csv:
+                if not samples:
+                    raise ValueError("CSV export requires measurement samples")
+                export_measurements(args.csv, samples)
+        except (serial.SerialException, OSError, ValueError, TimeoutError, csv.Error) as exc:
+            raise SystemExit(str(exc))
+        return
+    if args.simulate or args.csv:
+        parser.error("--simulate requires --gui or --command; --csv requires --command")
 
     try:
         ser = serial.Serial(args.port, args.baud, timeout=0.1)
@@ -582,7 +858,11 @@ def cli_main():
         except OSError:
             pass
 
-        lines = send_cmd(ser, cmd)
+        try:
+            lines = send_cmd(ser, cmd)
+        except (serial.SerialException, OSError, ValueError, TimeoutError) as exc:
+            print(f"ERR:{exc}")
+            continue
         for line in lines:
             print(f"ESP32> {line}")
 

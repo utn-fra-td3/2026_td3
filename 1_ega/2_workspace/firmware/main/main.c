@@ -8,6 +8,7 @@
 #include "esp_system.h"
 
 #include "ad9834_driver.h"
+#include "ad8302_measurement.h"
 #include "frequency_sweep.h"
 #include "uart_console.h"
 
@@ -37,6 +38,11 @@ void app_main(void)
     ad9834_set_output_sine();
     ad9834_set_frequency_hz(1000U, AD9834_FREQ_REG0);
     ad9834_enable(true);
+
+    ret = ad8302_measurement_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "ADC measurement unavailable: %s", esp_err_to_name(ret));
+    }
 
     uart_console_init();
     xTaskCreate(uart_console_task, "uart_console", 4096, NULL, 5, NULL);

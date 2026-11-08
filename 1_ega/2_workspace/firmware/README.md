@@ -4,27 +4,34 @@ Este directorio contiene un proyecto base para implementar un analizador de resp
 
 - ESP32-WROVER-E
 - AD9834 DDS
+- AD8302: detector analogico de relacion de amplitud y fase (modulo pendiente)
 - generación de barrido sinusoidal en frecuencia
 - medición de amplitud/salida con ADC del ESP32
 - control por software y registro de resultados
 
 ## Objetivo
 
-Generar una señal sinusoidal con el AD9834, recorrer un rango de frecuencias y medir la respuesta del sistema bajo prueba para obtener una curva de amplitud frente a frecuencia.
+Generar una señal sinusoidal con el AD9834, recorrer un rango de frecuencias
+y medir la relacion entre entrada y salida del DUT para obtener curvas de
+ganancia y fase plegada con el AD8302. El camino ADC de un canal se conserva
+para pruebas previas y compatibilidad.
 
 ## Arquitectura propuesta
 
 1. El ESP32 configura el AD9834 por SPI.
 2. El DDS produce una onda sinusoidal con frecuencia variable.
 3. El ESP32 cambia la frecuencia según un barrido configurado.
-4. Se toma una medida de amplitud con ADC o con un circuito de acondicionamiento.
-5. Se guarda el par (frecuencia, amplitud) para analizarlo posteriormente.
+4. Se espera el asentamiento del DUT y del detector antes de leer el ADC.
+5. Se adquieren las salidas de magnitud y fase del AD8302 por ADC1.
+6. Se registran frecuencia, cuentas, mV y flags, y se grafican ganancia/fase.
 
 ## Estructura del firmware
 
 - `main/main.c`: flujo principal del sistema.
 - `main/ad9834_driver.c/h`: driver del AD9834.
 - `main/frequency_sweep.c/h`: lógica del barrido y medición.
+- `main/ad8302_measurement.c/h`: ADC1 persistente, lectura de magnitud/fase
+	y simulacion explicita del detector.
 
 ## Configuración recomendada
 
@@ -54,7 +61,7 @@ Generar una señal sinusoidal con el AD9834, recorrer un rango de frecuencias y 
 
 - [ ] Definir el rango operativo del barrido para el DUT; el maximo del DDS es 37.5 MHz con MCLK de 75 MHz.
 - [ ] Definir la resolución en Hz por paso.
-- [ ] Definir si la medición es por ADC, RMS o pico a pico.
+- [x] Seleccionar detector AD8302 con dos ADC para ganancia y fase plegada.
 - [ ] Diseñar el circuito de acondicionamiento y atenuación.
 - [ ] Documentar la topología de prueba del DUT.
 - [ ] Registrar y graficar resultados.
@@ -118,9 +125,46 @@ idf.py -B build_local -p COM4 flash
 idf.py -B build_local -p COM4 monitor
 ```
 
-Salir del monitor con `Ctrl+]` antes de iniciar la GUI. Si no conecta,
+Salir del monitor con `Ctrl+]` antes de volver a cargar firmware. Si no conecta,
 revisar cable USB de datos y puerto; mantener BOOT mientras conecta y soltar
 al comenzar la transferencia. No es necesario borrar toda la memoria flash.
+
+## Adaptador USB a TTL (UART2)
+
+USB-C queda reservado para alimentacion, carga de firmware y logs (UART0).
+Los comandos y sus respuestas usan UART2 a 115200 bauds, 8N1, sin control
+de flujo. No se procesan comandos por USB-C con esta version.
+
+Para el Waveshare USB TO TTL (D), colocar el selector en **3.3 V** antes
+de conectar. Alimentar el ESP32 por USB-C y conectar solo estas tres lineas:
+
+| Cable del adaptador | Pin ESP32 |
+|---------------------|-----------|
+| Verde TXD | GPIO26 (RX UART2) |
+| Azul RXD | GPIO25 (TX UART2) |
+| Negro GND | GND |
+| Rojo VCC | No conectar; aislar |
+
+Realizar el cableado con ambos equipos desconectados de la alimentacion.
+No aplicar 5 V a los GPIO ni conectar el adaptador a GPIO1/3 (TX/RX del
+puente USB-C). Dejar el conector SH1.0 del adaptador sin conectar.
+GPIO25/26 comparten senales con la camara de esta placa Freenove:
+desconectar la camara sin alimentacion y no habilitarla en este firmware.
+GPIO16/17 no son alternativas apropiadas en WROVER por la PSRAM.
+
+Conectar el USB del adaptador al equipo que ejecuta la GUI. Identificar su
+puerto en el Administrador de dispositivos; COM5 es solo un ejemplo y es
+distinto del COM4 del puente USB-C. En Raspberry Pi, identificar el dispositivo
+en `/dev/serial/by-id/` o `/dev/ttyUSB*`.
+
+Validacion fisica pendiente: primero probar el adaptador separado del ESP32
+uniendo verde TXD con azul RXD y comprobando eco en un terminal a 115200 8N1.
+Retirar ese puente antes de conectar al ESP32. Tras cargar el firmware,
+comprobar `PING`, `STATUS`, `SETF 2000`, `SETW TRI`, `SETW SINE`, `ADC` y
+un comando invalido (`ERR:unknown command`). Un barrido corto
+`SWEEP 1000 3000 1000 50` debe entregar tres lineas
+`f = <Hz> Hz | ADC = <raw>` y luego `OK:SWEEP_DONE` por UART2.
+Los logs del barrido siguen disponibles por USB-C.
 
 ## GUI UART
 
@@ -129,11 +173,15 @@ Crear un entorno separado desde el directorio del firmware:
 ```powershell
 & C:\Espressif\tools\python\python.exe -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe uart_terminal.py --port COM4 --baud 115200 --gui
+.\.venv\Scripts\python.exe uart_terminal.py --port COM5 --baud 115200 --gui
 ```
 
-La GUI conecta automaticamente. Solo un programa puede usar COM4 a la vez:
-cerrar la GUI antes de volver a cargar firmware o abrir el monitor.
+Sustituir COM5 por el puerto real del adaptador. No se necesitan cambios en
+`uart_terminal.py` para este transporte. La GUI conecta automaticamente.
+Solo un programa puede usar el puerto del adaptador a la vez. El monitor
+USB-C en COM4 puede permanecer abierto mientras la GUI usa el adaptador;
+cerrar el monitor antes de cargar firmware. Un reinicio o una carga interrumpe
+cualquier comando o barrido en curso.
 Seleccionar `.venv\Scripts\python.exe` en VS Code para editar la GUI.
 `pyserial` es obligatorio; `matplotlib` habilita las graficas y Tkinter debe
 estar incluido en Python. Los comandos tambien estan en
@@ -141,6 +189,119 @@ estar incluido en Python. Los comandos tambien estan en
 
 Validacion inicial: `PING` debe responder `OK:PONG`; `STATUS` muestra
 frecuencia y modo; probar `SETF 1000` y `SETW SINE`.
+
+El lector usa una unica transaccion hasta la respuesta de finalizacion o
+error, con limites de tiempo total e inactividad calculados desde el barrido.
+Los puntos iniciales ya no se descartan y no existe el corte fijo de ocho
+segundos. La GUI procesa la transaccion fuera del hilo de Tk y bloquea
+comandos concurrentes mientras dura la adquisicion.
+
+## AD8302: desarrollo previo a la llegada del modulo
+
+Estado (2026-11-07): implementacion de software, sin carga de esta version
+en el ESP32 ni validacion fisica del AD8302. El objetivo es un DUT de 50 ohm,
+desde 1 kHz hasta 37.5 MHz, con fase plegada de 0 a 180 grados. Ese rango
+es un objetivo: los capacitores del modulo pueden limitar el extremo bajo
+y la calidad del DDS cerca de Nyquist puede limitar el extremo alto.
+
+La foto muestra entradas INPA/INPB, salidas de magnitud/fase y VREF, y
+conexiones de alimentacion. No confirma terminacion de 50 ohm, valores de
+capacitores, tension/polaridad de alimentacion ni orden exacto de pads.
+Ver el [plan de acondicionamiento](../../3_esquematico_pcb/README.md).
+
+### Adquisicion y comandos
+
+El servicio configura ADC1 una sola vez: GPIO36/ADC1_CH0 para magnitud y
+GPIO34/ADC1_CH6 para fase. GPIO34 es una asignacion provisional pendiente
+de verificar en los conectores de la placa. Cada medicion real promedia
+32 pares secuenciales y devuelve amplitud de variacion en cuentas ADC.
+Estas lecturas son de las salidas continuas del detector, no de las ondas RF.
+
+La conversion a mV usa calibracion line-fitting de ESP-IDF con datos eFuse.
+Si no esta disponible, se conservan las cuentas y los mV valen -1; no se
+aplica una formula del tipo `raw * 3.3 / 4095`. Esta calibracion del ADC
+no calibra el AD8302 ni los cables o atenuadores.
+
+Los comandos existentes `PING`, `STATUS`, `SETF`, `SETW`, `ADC` y `SWEEP`
+conservan su formato de respuesta. `SWEEP` ahora espera antes de leer y
+aborta ante error ADC, sin emitir un cero como punto valido. El dwell debe
+ser de 1 a 60000 ms y se redondea hacia arriba al tick del RTOS.
+El driver DDS existente tiene API de frecuencia sin retorno de error;
+una respuesta UART no constituye verificacion de una transferencia SPI.
+
+Nuevos comandos (fuente obligatoria y explicita):
+
+```text
+MEAS SIM
+MEAS ADC
+MSWEEP SIM 1000 200000 1000 50
+MSWEEP ADC 1000 200000 1000 50
+```
+
+`SIM` genera un DUT pasa-bajos ideal de primer orden con corte de 100 kHz;
+no utiliza ADC ni modifica la frecuencia fisica del DDS durante MSWEEP.
+Los niveles se limitan al rango nominal del detector y se marcan los
+extremos sospechosos. No simula ruido ni incertidumbre del hardware.
+`ADC` requiere seno; MEAS espera 50 ms y MSWEEP usa el dwell solicitado.
+Ese tiempo inicial no garantiza asentamiento de cualquier DUT o modulo:
+ajustarlo segun la respuesta del circuito y los filtros del detector.
+
+Ejemplo de punto simulado en 100 kHz, seguido de finalizacion:
+
+```text
+DATA:V1,F=100000,SEQ=0,T_US=123,SOURCE=SIM,MAG_RAW=-1,PHASE_RAW=-1,MAG_MV=810,PHASE_MV=1350,MAG_SPAN=-1,PHASE_SPAN=-1,FLAGS=9
+OK:MEAS_DONE
+```
+
+`F` esta en Hz; `SEQ` empieza en cero; `T_US` marca el inicio de adquisicion
+en microsegundos desde el arranque. Los campos RAW/SPAN usan cuentas;
+SPAN es maximo menos minimo. En simulacion son -1 porque no hubo ADC.
+MEAS termina con `OK:MEAS_DONE`; MSWEEP con `OK:MSWEEP_DONE`; un fallo
+termina con `ERR:`. Los flags son una mascara:
+
+| Bit / valor | Significado |
+|-------------|-------------|
+| 0 / 1 | Simulacion explicita |
+| 1 / 2 | ADC sin calibracion; mV no disponibles |
+| 2 / 4 | Extremo/saturacion sospechosa; no usar como punto fiable |
+| 3 / 8 | AD8302 sin calibracion de banco |
+
+La GUI convierte nominalmente `gain_db = (MAG_MV - 900) / 30` y
+`phase_folded_deg = (1800 - PHASE_MV) / 10`. Deben verificarse polaridad,
+offset y pendiente con el modulo real: estos coeficientes no son una
+calibracion. Los CSV incluyen fuente, flags, cuentas, mV, frecuencia,
+secuencia, tiempo y `CALIBRATION=NOMINAL_DETECTOR`.
+La GUI omite puntos con flags 2/4 de las curvas, pero los conserva en CSV.
+Los flags de rango no prueban presencia de RF ni niveles absolutos validos.
+La fase plegada no permite distinguir adelanto de atraso, y no debe
+interpretarse como fase firmada o corregirse por resta universal del thru.
+
+### Prueba sin hardware
+
+Desde este directorio, el mismo entorno de la GUI permite ejecutar:
+
+```powershell
+.\.venv\Scripts\python.exe uart_terminal.py --simulate --gui
+.\.venv\Scripts\python.exe uart_terminal.py --simulate --command "MSWEEP SIM 10000 200000 10000 50" --csv ad8302_sim.csv
+.\.venv\Scripts\python.exe -m unittest test_uart_measurement -v
+```
+
+El modo offline no abre ningun puerto serial y no espera el dwell en tiempo
+real; sus timestamps son los tiempos del barrido modelado. Usar MSWEEP para
+obtener ambas curvas, y Export CSV para una transaccion de medicion completa.
+El preview DDS sigue siendo sintetico. Sin `--simulate`, SIM requiere la
+nueva version de firmware y funciona por UART2; no confundir ambos modos.
+
+Verificacion local: build ESP-IDF completo; pruebas de parser, conversion
+nominal, flags, CSV, simulacion, secuencia y respuestas UART fragmentadas,
+en lotes grandes, con timeout/desconexion y barridos de mas de ocho segundos.
+Smoke test Tk offline: 20 puntos y ambas curvas renderizadas, sin puerto.
+Las advertencias Pylance de dependencias preexistentes dependen del
+interprete seleccionado; las pruebas usan el `.venv` local documentado.
+
+Pendiente para medicion real: verificar modulo y cableado, probar ambos ADC
+con tensiones DC conocidas/DMM, medir asentamiento y niveles RF cargados,
+calibrar ganancia/fase por frecuencia y comparar un DUT conocido.
 
 ### Resultados locales (2026-10-30)
 

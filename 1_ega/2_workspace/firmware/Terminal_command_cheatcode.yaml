@@ -19,10 +19,13 @@ firmware_terminal: |
 
 gui_terminal: |
   Set-Location 'C:\CV_Tools\Automation\2026_td3\1_ega\2_workspace\firmware'
-  .\.venv\Scripts\python.exe uart_terminal.py --port COM4 --baud 115200 --gui
+  .\.venv\Scripts\python.exe uart_terminal.py --port COM5 --baud 115200 --gui
 
 notes:
-  - "Exit the serial monitor with Ctrl+] before opening the GUI."
-  - "Close the GUI before flashing or monitoring: COM4 has one owner at a time."
+  - "COM4 is the ESP32 USB-C bridge for flashing and logs; COM5 is the FTDI adapter for commands."
+  - "The COM4 monitor and COM5 GUI can run together; exit the monitor with Ctrl+] before flashing."
+  - "Only one program can open each COM port; flashing or resetting interrupts commands and sweeps."
+  - "Set the adapter to 3.3 V: green TXD to GPIO26, blue RXD to GPIO25, black GND to GND; leave red VCC disconnected."
+  - "Disconnect the unused camera with power off: it shares GPIO25/26."
   - "Do not reuse build/: its cache contains paths from the previous PC."
   - "The GUI waveform preview is synthetic, not an oscilloscope measurement."
