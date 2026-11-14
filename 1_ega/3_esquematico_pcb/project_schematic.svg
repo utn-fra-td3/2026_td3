@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1188" viewBox="0 0 1680 1188">
+  <title>EGA frequency response analyzer - module-level schematic</title>
+  <desc>Revision A, 2026-11-14. Firmware pin assignments and proposed module interconnections. Not an as-built or fabrication schematic. Matching net labels are electrically connected; no GPIO numbers are connector positions.</desc>
+  <style>
+    text { font-family: Consolas, monospace; font-size: 15px; fill: #172126; }
+    .title { font-family: Segoe UI, sans-serif; font-size: 27px; font-weight: bold; }
+    .heading { font-family: Segoe UI, sans-serif; font-size: 19px; font-weight: bold; }
+    .small { font-size: 13px; }
+    .net { fill: #075b46; font-weight: bold; }
+    .warn { fill: #a32626; }
+    .box { fill: #fff; stroke: #34444c; stroke-width: 2; }
+    .planned { fill: #fff; stroke: #815b10; stroke-width: 2; stroke-dasharray: 8 5; }
+    .wire { fill: none; stroke: #075b46; stroke-width: 2; }
+    .rf { fill: none; stroke: #815b10; stroke-width: 2; stroke-dasharray: 8 5; }
+    .part { fill: #fff; stroke: #172126; stroke-width: 2; }
+    .rule { stroke: #ccd4d7; }
+  </style>
+  <rect width="1680" height="1188" fill="white"/>
+  <text x="35" y="42" class="title">EGA | Frequency Response Analyzer</text>
+  <text x="35" y="69">MODULE-LEVEL SCHEMATIC | Rev A | 2026-11-14 | ESP32-WROVER-E / Freenove adapter</text>
+  <text x="35" y="94" class="warn">DESIGN / WIRING REFERENCE ONLY. HMI and detector connections are not verified as built. Not for PCB fabrication.</text>
+  <text x="35" y="119" class="small">Matching green net labels connect electrically. All GND symbols/nets are common. GPIO numbers are NOT physical header positions.</text>
+
+  <rect x="35" y="150" width="500" height="270" rx="4" class="box"/>
+  <text x="52" y="178" class="heading">U2 | AD9834 DDS module</text>
+  <text x="52" y="203" class="small">Existing control wiring; 1 kHz output previously checked</text>
+  <text x="52" y="233">SDATA / DIN</text><text x="294" y="233" class="net">DDS_MOSI   GPIO23</text>
+  <text x="52" y="260">SCLK</text><text x="294" y="260" class="net">DDS_SCK    GPIO18</text>
+  <text x="52" y="287">FSYNC / CS</text><text x="294" y="287" class="net">DDS_CS     GPIO5</text>
+  <text x="52" y="314">RESET</text><text x="294" y="314" class="net">DDS_RST    GPIO4</text>
+  <text x="52" y="341">GND</text><text x="294" y="341" class="net">GND</text>
+  <text x="52" y="365" class="small">Keep existing verified module supply; not specified here.</text>
+  <text x="52" y="386" class="small">MCLK configured 75 MHz; SPI3 mode 2, 1 MHz.</text>
+  <text x="52" y="407" class="small">Sine1 = RF source below. Other outputs unused here.</text>
+
+  <rect x="565" y="150" width="550" height="510" rx="4" class="box"/>
+  <text x="583" y="178" class="heading">U1 | ESP32-WROVER-E development board</text>
+  <text x="583" y="203" class="small">USB-C / CH340: board power, flashing and logs (COM4)</text>
+  <text x="583" y="234" class="net">DDS_MOSI / SCK / CS / RST</text>
+  <text x="918" y="234">23 / 18 / 5 / 4</text>
+  <line x1="583" y1="250" x2="1097" y2="250" class="rule"/>
+  <text x="583" y="278" class="net">TFT_MOSI / SCK / CS</text><text x="918" y="278">13 / 14 / 27</text>
+  <text x="583" y="305" class="net">TFT_DC / TFT_RST</text><text x="918" y="305">32 / 33</text>
+  <text x="583" y="332" class="net">I2C_SDA / I2C_SCL</text><text x="918" y="332">21 / 22</text>
+  <line x1="583" y1="348" x2="1097" y2="348" class="rule"/>
+  <text x="583" y="377" class="net">MAG_ADC</text><text x="848" y="377">GPIO36 / ADC1_CH0</text>
+  <text x="583" y="404" class="net">PHASE_ADC</text><text x="848" y="404">GPIO34 / ADC1_CH6</text>
+  <text x="583" y="431" class="net">APP_TX / APP_RX</text><text x="918" y="431">25 / 26</text>
+  <line x1="583" y1="447" x2="1097" y2="447" class="rule"/>
+  <text x="583" y="475" class="net">+3V3 / GND</text><text x="848" y="475">Board supply headers</text>
+  <text x="583" y="506" class="warn">Camera disconnected. GPIO16/17 reserved for PSRAM.</text>
+  <text x="583" y="533" class="small">No 5 V on GPIO. TFT reset is GPIO33, NOT EN.</text>
+  <text x="583" y="556" class="small">HMI: SPI2 mode 0, 10 MHz; I2C 100 kHz.</text>
+  <text x="583" y="579" class="small">Optional CONFIG_EGA_HMI defaults OFF; enabled image</text>
+  <text x="583" y="600" class="small">built previously, but not flashed / hardware-tested.</text>
+  <text x="583" y="632" class="small">Check regulator current budget before powering all loads.</text>
+
+  <rect x="1145" y="150" width="500" height="340" rx="4" class="planned"/>
+  <text x="1162" y="178" class="heading">U3 | KMRTM28028-SPI TFT</text>
+  <text x="1162" y="202" class="small">ILI9341 advertised; actual controller not yet confirmed</text>
+  <text x="1162" y="232">SDI(MOSI) / SCK</text><text x="1410" y="232" class="net">TFT_MOSI / SCK</text>
+  <text x="1162" y="259">CS / DC / RESET</text><text x="1410" y="259" class="net">TFT_CS / DC / RST</text>
+  <text x="1162" y="286">GND</text><text x="1410" y="286" class="net">GND</text>
+  <text x="1162" y="313">VCC</text><text x="1300" y="313">+3V3 initial test only *</text>
+  <text x="1162" y="340">LED</text><text x="1300" y="340">+3V3 via R3 = 220 ohm *</text>
+  <text x="1162" y="370" class="small">* Provisional: check regulator / backlight circuit.</text>
+  <text x="1162" y="391" class="small">3.3 V input may suffer regulator dropout; LED may dim.</text>
+  <text x="1162" y="412" class="small">Do not substitute 5 V or bridge J1 without checking.</text>
+  <text x="1162" y="439" class="small">NC: SDO(MISO), all TOUCH pins, separate SD header.</text>
+  <text x="1162" y="466" class="small">Use printed labels on the main 14-pin header.</text>
+
+  <rect x="35" y="440" width="500" height="220" rx="4" class="box"/>
+  <text x="52" y="468" class="heading">J1 | Waveshare USB-to-TTL (D)</text>
+  <text x="52" y="492" class="small">PC application port COM5 | 115200 baud, 8N1</text>
+  <text x="52" y="523">TXD (green)</text><text x="294" y="523" class="net">APP_RX   GPIO26</text>
+  <text x="52" y="550">RXD (blue)</text><text x="294" y="550" class="net">APP_TX   GPIO25</text>
+  <text x="52" y="577">GND (black)</text><text x="294" y="577" class="net">GND</text>
+  <text x="52" y="609" class="warn">VCC (red): NC. Select 3.3 V logic.</text>
+  <text x="52" y="636" class="small">Do not power target modules through this adapter.</text>
+
+  <rect x="1145" y="510" width="500" height="280" rx="4" class="planned"/>
+  <text x="1162" y="538" class="heading">U4 | Waveshare MCP23017 + 4x4 keypad</text>
+  <text x="1162" y="568">VCC red / GND black</text><text x="1430" y="568" class="net">+3V3 / GND</text>
+  <text x="1162" y="595">SDA blue / SCL yellow</text><text x="1430" y="595" class="net">I2C_SDA / SCL</text>
+  <text x="1162" y="622">INTA orange / INTB teal: NC</text>
+  <text x="1162" y="650">PB0 / PB1 / PB2 / PB3 -&gt; keypad R1 / R2 / R3 / R4</text>
+  <text x="1162" y="677">PA0 / PA1 / PA2 / PA3 -&gt; keypad C1 / C2 / C3 / C4</text>
+  <text x="1162" y="705" class="small">A0/A1/A2 open = 0x27. RESET must be held high.</text>
+  <text x="1162" y="726" class="small">Check existing SDA/SCL pullups: must terminate at +3V3.</text>
+  <text x="1162" y="747" class="small">Key layout: 123A / 456B / 789C / *0#D.</text>
+  <text x="1162" y="774" class="small">Cable colors from supplied photos; confirm continuity.</text>
+
+  <rect x="35" y="685" width="1080" height="230" rx="4" class="planned"/>
+  <text x="52" y="713" class="heading">U5 | AD8302 module + proposed ADC filters</text>
+  <text x="52" y="739" class="small">Output header, top to bottom in supplied component-side photo: AGND, VMAG, Vref, VPHS, AGND.</text>
+  <text x="52" y="780">VMAG</text>
+  <path d="M 113 775 H 185 M 265 775 H 475" class="wire"/>
+  <rect x="185" y="767" width="80" height="16" class="part"/>
+  <text x="189" y="759" class="small">R1 1 kohm</text>
+  <circle cx="340" cy="775" r="4" fill="#075b46"/>
+  <path d="M 340 775 V 807 M 326 807 H 354 M 326 814 H 354 M 340 814 V 842 M 326 842 H 354 M 331 848 H 349 M 337 854 H 343" class="wire"/>
+  <text x="362" y="820" class="small">C1 100 nF</text><text x="362" y="846" class="small net">GND</text>
+  <text x="482" y="780" class="net">MAG_ADC / GPIO36</text>
+  <text x="675" y="780">VPHS</text>
+  <path d="M 725 775 H 770 M 850 775 H 1035" class="wire"/>
+  <rect x="770" y="767" width="80" height="16" class="part"/>
+  <text x="774" y="759" class="small">R2 1 kohm</text>
+  <circle cx="915" cy="775" r="4" fill="#075b46"/>
+  <path d="M 915 775 V 807 M 901 807 H 929 M 901 814 H 929 M 915 814 V 842 M 901 842 H 929 M 906 848 H 924 M 912 854 H 918" class="wire"/>
+  <text x="940" y="820" class="small">C2 100 nF</text><text x="940" y="846" class="small net">GND</text>
+  <text x="1035" y="797" text-anchor="end" class="small net">PHASE_ADC / GPIO34</text>
+  <text x="52" y="875" class="small warn">VCC: UNCONNECTED pending breakout supply check. GND + AGND: common GND. Vref: NC (output).</text>
+  <text x="52" y="899" class="small">Measure outputs before ADC connection. RC is not overvoltage protection. 100 us RC; settling / drive unverified.</text>
+
+  <rect x="1145" y="810" width="500" height="105" rx="4" class="planned"/>
+  <text x="1162" y="837" class="heading">Power / Assembly Hold Points</text>
+  <text x="1162" y="862" class="small">Unplug all power before wiring; solder AD8302 headers.</text>
+  <text x="1162" y="883" class="small">Do not join independent supply outputs / USB VCC rails.</text>
+  <text x="1162" y="904" class="small">Verify polarity, supply current and module outputs first.</text>
+
+  <rect x="35" y="940" width="1610" height="210" rx="4" class="planned"/>
+  <text x="52" y="968" class="heading">Proposed RF measurement path | NOT assembled / NOT validated</text>
+  <rect x="53" y="989" width="180" height="48" class="planned"/><text x="65" y="1019">AD9834 Sine1</text>
+  <path d="M 233 1013 H 270" class="rf"/>
+  <rect x="270" y="989" width="275" height="48" class="planned"/><text x="283" y="1019">Filter + 50-ohm driver TBD</text>
+  <path d="M 545 1013 H 580" class="rf"/>
+  <rect x="580" y="989" width="190" height="48" class="planned"/><text x="595" y="1019">Matched splitter</text>
+  <path d="M 770 1001 H 820 M 770 1025 H 795 V 1071 H 820" class="rf"/>
+  <rect x="820" y="983" width="120" height="37" class="planned"/><text x="863" y="1007">DUT</text>
+  <path d="M 940 1001 H 978" class="rf"/>
+  <rect x="978" y="983" width="250" height="37" class="planned"/><text x="990" y="1007">Optional attenuator TBD</text>
+  <path d="M 1228 1001 H 1270" class="rf"/>
+  <text x="1280" y="1007">AD8302 RFina (DUT output)</text>
+  <rect x="820" y="1052" width="408" height="37" class="planned"/><text x="833" y="1076">Reference path / optional attenuator TBD</text>
+  <path d="M 1228 1071 H 1270" class="rf"/>
+  <text x="1280" y="1076">AD8302 RFinb (reference)</text>
+  <text x="52" y="1115" class="small warn">No direct DDS-to-dual-50-ohm tee. Verify source loading, both RF levels, termination, coupling and frequency response.</text>
+  <text x="52" y="1137" class="small">Board marking: 0.1-2700 MHz; 1 kHz is NOT established. No RF on ADC pins. Use coax, not long breadboard/Dupont RF wiring.</text>
+  <text x="35" y="1175" class="small">Solid module outlines: existing DDS / controller / UART architecture. Dashed outlines: proposed additions or unresolved circuitry. NC = no connection.</text>
+</svg>

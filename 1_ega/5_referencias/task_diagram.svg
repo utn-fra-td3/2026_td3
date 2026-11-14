@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1140" viewBox="0 0 1500 1140">
+  <title>EGA firmware task and communication diagram</title>
+  <desc>Current firmware, 2026-11-14. Three core application tasks and one optional HMI task. Priorities, stacks, queues, shared status and driver callbacks are distinguished. Not a hardware validation claim.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#34444c"/></marker></defs>
+  <style>
+    text { font-family: Consolas, monospace; font-size: 15px; fill: #172126; }
+    .title { font-family: Segoe UI, sans-serif; font-size: 27px; font-weight: bold; }
+    .heading { font-family: Segoe UI, sans-serif; font-size: 20px; font-weight: bold; }
+    .small { font-size: 13px; }
+    .box { fill: #f5f7f8; stroke: #34444c; stroke-width: 2; }
+    .task { fill: #e8f4ee; stroke: #126449; stroke-width: 2; }
+    .queue { fill: #fff4cf; stroke: #815b10; stroke-width: 2; }
+    .optional { fill: #fff; stroke: #815b10; stroke-width: 2; stroke-dasharray: 8 5; }
+    .wire { fill: none; stroke: #34444c; stroke-width: 2; marker-end: url(#arrow); }
+    .shared { fill: none; stroke: #34444c; stroke-width: 2; stroke-dasharray: 5 5; marker-end: url(#arrow); }
+  </style>
+  <rect width="1500" height="1140" fill="white"/>
+  <text x="30" y="40" class="title">EGA | Firmware Tasks and Communication</text>
+  <text x="30" y="68">2026-11-14 | Application architecture implemented in firmware; hardware runtime validation remains pending.</text>
+  <rect x="30" y="100" width="1400" height="65" rx="4" class="box"/>
+  <text x="50" y="128" class="heading">PC CLI / Tkinter GUI</text>
+  <text x="420" y="128">USB-to-TTL / COM5 / UART2 / 115200 baud</text>
+  <text x="50" y="151" class="small">Commands, DATA records, incremental plots and CSV. PC threads are outside the FreeRTOS task count.</text>
+  <path d="M180 165 V210" class="wire"/>
+  <rect x="30" y="210" width="310" height="160" rx="4" class="box"/>
+  <text x="47" y="240" class="heading">ESP-IDF UART driver</text>
+  <text x="47" y="270">ISR + RX ring buffer</text>
+  <text x="47" y="296">UART event queue: 16</text>
+  <text x="47" y="322">RX 1024 B / TX 512 B</text>
+  <text x="47" y="350" class="small">Driver/ISR, not an app task</text>
+  <path d="M340 270 H400" class="wire"/>
+  <rect x="400" y="210" width="400" height="160" rx="4" class="task"/>
+  <text x="420" y="240" class="heading">uart_rx | Priority 5</text>
+  <text x="420" y="267">Stack: 4096 bytes</text>
+  <text x="420" y="294">Block on UART events; frame commands</text>
+  <text x="420" y="320">PING / STATUS / HELP handled here</text>
+  <text x="420" y="347" class="small">Overflow / parity / framing fault recovery</text>
+  <path d="M600 370 V460" class="wire"/>
+  <text x="612" y="405">Shared admission gate:</text>
+  <text x="612" y="428">reserve BUSY or reject</text>
+  <path d="M800 285 H1215 V460" class="wire"/>
+  <text x="850" y="270">Immediate replies / errors</text>
+  <rect x="400" y="460" width="400" height="100" rx="4" class="queue"/>
+  <text x="420" y="490" class="heading">s_commands | Length 1</text>
+  <text x="420" y="518">256-byte text + origin / SINE flags</text>
+  <text x="420" y="543" class="small">No pending-command backlog while BUSY</text>
+  <rect x="30" y="450" width="310" height="210" rx="4" class="optional"/>
+  <text x="47" y="480" class="heading">local_hmi | Priority 2</text>
+  <text x="47" y="507">Stack: 6144 bytes</text>
+  <text x="47" y="534">Optional CONFIG_EGA_HMI</text>
+  <text x="47" y="561">Keypad scan + debounce</text>
+  <text x="47" y="588">SINE setup / live gain + phase</text>
+  <text x="47" y="615">10 ms normal loop delay</text>
+  <text x="47" y="643" class="small">Default OFF; not hardware-tested</text>
+  <path d="M340 510 H400" class="wire"/>
+  <text x="48" y="415" class="small">Local sweep starts use the same BUSY gate</text>
+  <path d="M600 560 V620" class="wire"/>
+  <rect x="400" y="620" width="400" height="240" rx="4" class="task"/>
+  <text x="420" y="650" class="heading">analyzer | Priority 3</text>
+  <text x="420" y="677">Stack: 4096 bytes</text>
+  <text x="420" y="704">Block on command queue</text>
+  <text x="420" y="731">DDS / ADC / SIM / sweep execution</text>
+  <text x="420" y="758">Validate and persist configuration</text>
+  <text x="420" y="785">Update latest sample + local result</text>
+  <text x="420" y="812">Clear BUSY before terminal response</text>
+  <text x="420" y="841" class="small">Sweep is synchronous work, NOT another task</text>
+  <rect x="1000" y="460" width="430" height="100" rx="4" class="queue"/>
+  <text x="1020" y="490" class="heading">s_responses | Length 16</text>
+  <text x="1020" y="518">Response frames / DATA records</text>
+  <text x="1020" y="543" class="small">Producers block when queue is full</text>
+  <path d="M800 690 H930 V510 H1000" class="wire"/>
+  <text x="824" y="714" class="small">UART-origin</text>
+  <text x="824" y="734" class="small">results only</text>
+  <path d="M1215 560 V620" class="wire"/>
+  <rect x="1000" y="620" width="430" height="150" rx="4" class="task"/>
+  <text x="1020" y="650" class="heading">uart_tx | Priority 4</text>
+  <text x="1020" y="677">Stack: 4096 bytes</text>
+  <text x="1020" y="704">Block on response queue</text>
+  <text x="1020" y="731">Append CRLF; uart_write_bytes()</text>
+  <text x="1020" y="756" class="small">UART driver TX buffer / ISR sends bytes</text>
+  <path d="M1430 700 H1465 V132 H1430" class="wire"/>
+  <rect x="30" y="740" width="310" height="150" rx="4" class="box"/>
+  <text x="47" y="770" class="heading">Shared status snapshot</text>
+  <text x="47" y="797">portMUX critical sections</text>
+  <text x="47" y="824">BUSY, config, cancel, result</text>
+  <text x="47" y="851">256 local samples + latest</text>
+  <text x="47" y="877" class="small">Not a queue and not a task</text>
+  <path d="M400 800 H340" class="shared"/>
+  <path d="M180 740 V660" class="shared"/>
+  <text x="36" y="700" class="small">Status / sample reads; cancel bypasses queue</text>
+  <text x="1000" y="812" class="small">Local cancel checks every 20 ms during waits;</text>
+  <text x="1000" y="834" class="small">they do not inject DATA into PC transactions.</text>
+  <text x="1000" y="866" class="small">TFT DMA completion callback releases the</text>
+  <text x="1000" y="888" class="small">LVGL flush; callback is not an app task.</text>
+  <path d="M600 860 V950" class="wire"/>
+  <rect x="400" y="950" width="1030" height="105" rx="4" class="box"/>
+  <text x="420" y="980" class="heading">Analyzer services / hardware access</text>
+  <text x="420" y="1008">AD9834 SPI3 | ADC1 paired samples / calibration | explicit SIM source | NVS flash</text>
+  <text x="420" y="1035" class="small">Only analyzer executes queued device operations. HMI uses separate SPI2 and MCP23017 I2C.</text>
+  <text x="30" y="1090" class="small">Startup: app_main initializes DDS / ADC, restores configuration via console init, starts UART tasks, then optional HMI.</text>
+  <text x="30" y="1115" class="small">Green = application task. Yellow = queue. Dashed box = optional task; dashed arrows = shared state. SDK tasks omitted.</text>
+</svg>

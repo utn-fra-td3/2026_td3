@@ -21,11 +21,31 @@ gui_terminal: |
   Set-Location 'C:\CV_Tools\Automation\2026_td3\1_ega\2_workspace\firmware'
   .\.venv\Scripts\python.exe uart_terminal.py --port COM5 --baud 115200 --gui
 
+offline_counted_sweep: |
+  Set-Location 'C:\CV_Tools\Automation\2026_td3\1_ega\2_workspace\firmware'
+  .\.venv\Scripts\python.exe uart_terminal.py --simulate --command "MSWEEP_POINTS SIM 50000 200003 4 201" --csv "$env:TEMP\ega_counted_sim.csv"
+
+protocol_tests: |
+  Set-Location 'C:\CV_Tools\Automation\2026_td3\1_ega\2_workspace\firmware'
+  .\.venv\Scripts\python.exe -m unittest test_uart_measurement -v
+
+hmi_build: |
+  Set-Location 'C:\CV_Tools\Automation\2026_td3\1_ega\2_workspace\firmware'
+  idf.py -B "$PWD/build_local/hmi_validation" -D "SDKCONFIG=$PWD/build_local/hmi_validation/sdkconfig" -D "SDKCONFIG_DEFAULTS=$PWD/sdkconfig;$PWD/sdkconfig.hmi" build
+
 notes:
   - "COM4 is the ESP32 USB-C bridge for flashing and logs; COM5 is the FTDI adapter for commands."
   - "The COM4 monitor and COM5 GUI can run together; exit the monitor with Ctrl+] before flashing."
   - "Only one program can open each COM port; flashing or resetting interrupts commands and sweeps."
   - "Set the adapter to 3.3 V: green TXD to GPIO26, blue RXD to GPIO25, black GND to GND; leave red VCC disconnected."
-  - "Disconnect the unused camera with power off: it shares GPIO25/26."
+  - "The camera is already disconnected; keep it unused because it shares GPIO25/26."
   - "Do not reuse build/: its cache contains paths from the previous PC."
   - "The GUI waveform preview is synthetic, not an oscilloscope measurement."
+  - "MSWEEP_POINTS <SIM|ADC> <start> <stop> <points> <total_ms> includes both endpoints; total_ms must be at least points * 10 with the current 100 Hz RTOS tick."
+  - "Firmware saves configuration in NVS; STATUS reports STORAGE and RESTORED plus sweep settings. Reboot restoration still needs verification on the board."
+  - "HMI is disabled by default. Run hmi_build after loading ESP-IDF; it creates a separate enabled image without flashing."
+  - "Local SINE HMI: B next field, digits edit, # accept, * backspace, C SIM/ADC, D start, A stop/home at any point. SIM is the boot default."
+  - "Local sweeps retain all 1..256 points and show live gain/folded-phase plots on log Hz axes. Try 1000..200000 Hz, 100 points, 10000 ms with the AD8302 disconnected."
+  - "A cancels only local sweeps, outside the BUSY queue. Wait for READY before restarting; stopping leaves the DDS output at its last setting. UART commands and 10000-point limit are unchanged."
+  - "HMI pins are provisional: TFT SCK14/MOSI13/CS27/DC32/RESET33; MCP23017 SDA21/SCL22 at 3.3 V, address 0x27 with open Waveshare jumpers."
+  - "Keypad rows GPB0..3, columns GPA0..3. Verify physical connector order and delivered TFT power/backlight labels before wiring."

@@ -1,10 +1,11 @@
 import csv
 import io
+import queue
 import tempfile
 import unittest
 from collections import deque
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import uart_terminal as terminal
 
@@ -99,6 +100,143 @@ class MeasurementTests(unittest.TestCase):
         self.assertEqual(rows[0]["MAG_RAW"], "-1")
         self.assertEqual(rows[0]["PHASE_FOLDED_DEG"], "45.0")
         self.assertEqual(rows[0]["CALIBRATION"], "NOMINAL_DETECTOR")
+
+
+class DeviceStatusTests(unittest.TestCase):
+    def test_restored_defaults_and_sweep_settings_are_authoritative(self):
+        app = object.__new__(terminal.UARTTerminalApp)
+        app.current_frequency = 2000
+        app.current_wave = "TRI"
+        app.simulate = False
+        for name in ("freq_var", "wave_var", "storage_var", "signal_label_var", "sweep_start", "sweep_stop", "sweep_points",
+                     "sweep_total_ms", "sweep_step", "sweep_dwell", "measurement_source"):
+            setattr(app, name, Mock())
+        frame = ("OK:FREQ=1000,MODE=SINE,STATUS=READY,STORAGE=READY,RESTORED=1,"
+                 "START=1000,STOP=2003,STEP=0,DWELL_MS=0,POINTS=4,TOTAL_MS=201,SOURCE=ADC")
+        app._update_signal_monitor(frame)
+        self.assertEqual((app.current_frequency, app.current_wave), (1000, "SINE"))
+        app.freq_var.set.assert_called_once_with("1000")
+        app.wave_var.set.assert_called_once_with("SINE")
+        app.sweep_points.set.assert_called_once_with("4")
+        app.sweep_total_ms.set.assert_called_once_with("201")
+        app.measurement_source.set.assert_called_once_with("ADC")
+        app.storage_var.set.assert_called_once_with("Storage: READY | Restored: yes")
+        app.sweep_step.set.assert_not_called()
+
+    def test_legacy_status_and_storage_fault_are_accepted(self):
+        fields = terminal.parse_device_status("OK:FREQ=2000,MODE=TRI,STATUS=READY,SOURCE=SIM")
+        self.assertEqual(fields["FREQ"], "2000")
+        fields = terminal.parse_device_status("OK:FREQ=1000,MODE=SINE,STORAGE=FAULT,RESTORED=0")
+        self.assertEqual(fields["STORAGE"], "FAULT")
+
+    def test_malformed_status_is_rejected(self):
+        for frame in ("OK:FREQ=0,MODE=SINE", "OK:FREQ=1000,MODE=INVALID",
+                      "OK:FREQ=1000,MODE=SINE,FREQ=2000", "OK:FREQ=1000,MODE=SINE,START=1",
+                      "OK:FREQ=1000,MODE=SINE,STORAGE=INVALID"):
+            with self.subTest(frame=frame), self.assertRaises(ValueError):
+                terminal.parse_device_status(frame)
+        self.assertIsNone(terminal.parse_device_status("DATA:V1,F=1000"))
+
+
+class CountedSweepTests(unittest.TestCase):
+    def test_nondivisible_range_includes_both_endpoints(self):
+        command = "MSWEEP_POINTS SIM 1000 2003 4 201"
+        lines = terminal.simulate_command(command)
+        samples = [terminal.parse_measurement_line(line) for line in lines[:-1]]
+        self.assertEqual([sample["F"] for sample in samples], [1000, 1334, 1668, 2003])
+        self.assertEqual(samples[-1]["T_US"], 210000)
+        self.assertEqual(lines[-1], "OK:MSWEEP_POINTS_DONE")
+        terminal.validate_measurement_sweep(samples, command)
+        samples[-1]["F"] -= 1
+        with self.assertRaises(ValueError):
+            terminal.validate_measurement_sweep(samples, command)
+
+    def test_single_point_and_invalid_counts_or_timing(self):
+        self.assertEqual(terminal.sweep_plan("MSWEEP_POINTS SIM 1000 1000 1 10")[0], [1000])
+        for arguments in ("1000 2000 1 100", "1000 1001 3 100", "1000 2000 0 100",
+                          "1000 2000 4 39", "2000 1000 4 100", "1000 2000 4 3600001",
+                          "1000 2000 -4 100", "1 20000 10001 200000"):
+            with self.subTest(arguments=arguments), self.assertRaises(ValueError):
+                terminal.sweep_plan(f"MSWEEP_POINTS SIM {arguments}")
+
+    def test_legacy_step_behavior_is_unchanged(self):
+        frequencies, duration, dwell = terminal.sweep_plan("MSWEEP SIM 1000 2003 334 50")
+        self.assertEqual(list(frequencies), [1000, 1334, 1668, 2002])
+        self.assertEqual((duration, dwell), (200, 50))
+
+    def test_timing_and_completion_sentinel(self):
+        total, idle, sentinel = terminal.command_timing("MSWEEP_POINTS ADC 1000 2000 3 9000")
+        self.assertGreater(total, 9)
+        self.assertGreaterEqual(idle, 6)
+        self.assertEqual(sentinel, "OK:MSWEEP_POINTS_DONE")
+        response = b"OK:MSWEEP_POINTS_DONE\r\n"
+        self.assertEqual(terminal.send_cmd(FakeSerial([response]), "MSWEEP_POINTS SIM 1 3 3 30"),
+                         ["OK:MSWEEP_POINTS_DONE"])
+
+
+class LivePlotTests(unittest.TestCase):
+    def make_app(self):
+        app = object.__new__(terminal.UARTTerminalApp)
+        app.transaction_events = queue.Queue()
+        app.transaction_busy = True
+        app.transaction_error = False
+        app.measurements = []
+        app.measurements_complete = False
+        app.legacy_points = []
+        app.active_command = "MEAS SIM"
+        app.root = Mock()
+        app.status_var = Mock()
+        app._add_output = Mock()
+        app._redraw_measurements = Mock()
+        return app
+
+    def test_partial_measurement_batch_redraws_before_completion(self):
+        app = self.make_app()
+        for sequence in range(3):
+            app.transaction_events.put(("line", measurement_line(sequence=sequence)))
+        app._poll_transaction()
+        self.assertEqual(len(app.measurements), 3)
+        self.assertTrue(app.transaction_busy)
+        self.assertFalse(app.measurements_complete)
+        app._redraw_measurements.assert_called_once_with()
+        app.root.after.assert_called_once_with(50, app._poll_transaction)
+
+    def test_partial_legacy_sweep_redraws(self):
+        app = self.make_app()
+        app.transaction_events.put(("line", "f = 1000 Hz | ADC = 123"))
+        app._poll_transaction()
+        self.assertEqual(app.legacy_points, [(1000, 123)])
+        app._redraw_measurements.assert_called_once_with()
+
+    def test_nonmeasurement_messages_do_not_redraw(self):
+        app = self.make_app()
+        app.transaction_events.put(("line", "OK:PONG"))
+        app._poll_transaction()
+        app._redraw_measurements.assert_not_called()
+
+    def test_backlog_is_bounded_and_remaining_events_are_processed(self):
+        app = self.make_app()
+        for sequence in range(130):
+            app.transaction_events.put(("line", measurement_line(sequence=sequence)))
+        app._poll_transaction()
+        self.assertEqual(len(app.measurements), 128)
+        self.assertEqual(app.transaction_events.qsize(), 2)
+        app._redraw_measurements.assert_called_once_with()
+        app._poll_transaction()
+        self.assertEqual(len(app.measurements), 130)
+        self.assertTrue(app.transaction_events.empty())
+        self.assertEqual(app._redraw_measurements.call_count, 2)
+
+    def test_completed_measurement_redraws_once_and_allows_export(self):
+        app = self.make_app()
+        app.transaction_events.put(("line", measurement_line()))
+        app.transaction_events.put(("line", "OK:MEAS_DONE"))
+        app.transaction_events.put(("done", None))
+        app._poll_transaction()
+        self.assertTrue(app.measurements_complete)
+        self.assertFalse(app.transaction_busy)
+        app.status_var.set.assert_called_once_with("COMPLETE")
+        app._redraw_measurements.assert_called_once_with()
 
 
 class TransactionTests(unittest.TestCase):

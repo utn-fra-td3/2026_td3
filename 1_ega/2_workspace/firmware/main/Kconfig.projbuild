@@ -1,0 +1,10 @@
+menu "EGA local HMI"
+    config EGA_HMI
+        bool "Enable ILI9341 display and MCP23017 keypad"
+        default n
+    config EGA_HMI_I2C_ADDRESS
+        hex "MCP23017 7-bit address"
+        range 0x20 0x27
+        default 0x27
+        depends on EGA_HMI
+endmenu

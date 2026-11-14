@@ -73,6 +73,120 @@ para pruebas previas y compatibilidad.
 - ESP-IDF SPI driver documentation
 - TRM del ESP32
 
+## Local HMI: ILI9341 + MCP23017 + 4x4 keypad
+
+The optional HMI provides SINE sweep setup and live magnitude/phase plots.
+The user reports the TFT, expander and keypad connected; the camera and
+AD8302 remain disconnected. Wiring/controller assumptions below still need
+bench validation. This HMI firmware has not been flashed or physically tested.
+
+| Signal | Connection |
+|--------|------------|
+| TFT SCK | ESP32 GPIO14, SPI2 |
+| TFT MOSI / SDI | ESP32 GPIO13, SPI2 |
+| TFT CS | ESP32 GPIO27 |
+| TFT D/C | ESP32 GPIO32 |
+| TFT RESET | ESP32 GPIO33, dedicated reset, not EN |
+| MCP23017 SDA | ESP32 GPIO21 |
+| MCP23017 SCL | ESP32 GPIO22 |
+| Keypad rows R1..R4 | MCP23017 GPB0..GPB3 |
+| Keypad columns C1..C4 | MCP23017 GPA0..GPA3 |
+| Grounds | Common ESP32, TFT and MCP23017 ground |
+
+Use 3.3 V power/logic for the MCP23017 and SDA/SCL pullups to 3.3 V.
+Check the breakout's existing pullups before adding more. Verify the TFT's
+VCC and backlight supply requirements from the delivered module; all TFT
+logic signals must remain 3.3 V. Do not power its backlight directly from a
+GPIO. TFT MISO, touch, SD card and expander interrupt pins are unused.
+Verify the expander RESET is held high, not floating, and power-cycle it
+before the first test (register addressing assumes BANK=0). Keypad connector
+order is not standardized: identify its rows/columns with a continuity test.
+
+Waveshare address jumpers open = high; all open means 0x27, all shorted 0x20.
+The address is configurable under `EGA local HMI` in `menuconfig`.
+GPIO4/5/18/23 (DDS), GPIO25/26 (UART), GPIO34/36 (ADC), and GPIO16/17
+(PSRAM) remain unchanged. TFT SPI2 is independent of the DDS SPI3 bus.
+
+### Keypad Controls
+
+The expected physical key layout is `123A / 456B / 789C / *0#D`.
+
+| Key | Action |
+|-----|--------|
+| 0..9 | Home: enter a replacement numeric value |
+| * | Home: backspace |
+| # | Home: accept the value into the local draft only |
+| A | Return home and cancel an active local sweep; clear unfinished entry |
+| B | Home: accept entry and select the next field |
+| C | Home: toggle SIM/ADC source |
+| D | Home: validate settings, select SINE and start the sweep |
+
+Sweep fields are start Hz, stop Hz, points (1..256) and total ms. Both
+endpoints are included, with linearly spaced integer-Hz samples. One point
+requires equal endpoints. Total time must allow at least 10 ms/point at the
+current 100 Hz RTOS tick and cannot exceed one hour. Saved sweep settings
+seed the home draft at startup, capped to 256 points; the source deliberately
+defaults to SIM on every boot while the AD8302/frontend is not connected.
+Editing values or changing source does not affect hardware until D.
+
+Local starts reserve the same BUSY gate as UART operations. Selecting SINE
+and executing the sweep happen within one analyzer request, without an
+intervening UART command. SIM uses the existing synthetic 100 kHz low-pass
+response: SINE is selected, but the DDS frequency is not swept in SIM mode.
+ADC sweeps program the DDS and acquire the detector after settling.
+
+During a sweep, both plots update about every 100 ms. Their shared horizontal
+axis is logarithmic frequency in Hz (k/M suffixes); gain is -30..+30 dB and
+phase is folded magnitude 0..180 degrees, not signed lead/lag. ADC values use
+nominal detector coefficients (900 mV at 0 dB, 30 mV/dB, 10 mV/degree) and
+are explicitly labelled NOM, not detector-calibrated. Without ADC voltage
+calibration, raw counts replace the readout and no gain/phase curve is
+fabricated. Suspect input ranges show RANGE!; completed/error plots remain
+visible until A. The local sample history retains every point, up to 256,
+so slower display refresh does not lose intermediate samples. UART sweeps
+retain their existing 10000-point limit and protocol.
+
+A hides the plots immediately after the debounced key is accepted and
+requests cancellation without entering the command queue. Local sweep waits
+check cancellation in chunks of at most 20 ms; actual response also includes
+key scanning, task scheduling and any acquisition/NVS work already underway.
+The home screen remains BUSY until the analyzer acknowledges cancellation
+(`OK:SWEEP_CANCELLED` locally). A does not cancel UART-origin operations.
+Stopping a sweep leaves the DDS at its last setting; it does not disable
+its output. Local samples/results do not enter PC UART transactions.
+
+The HMI task runs at priority 2, below the analyzer and UART tasks. LVGL owns
+the screen and uses a DMA-capable partial framebuffer. Key scanning requires
+three matching scans, accepts one key only, and requires release before the
+next key. Inactive rows remain inputs to avoid row-output contention.
+I2C transfers have 20 ms timeouts; faults suppress input and retry slowly,
+restoring keypad configuration and requiring release after recovery.
+An initialization failure is logged and leaves the UART analyzer available.
+
+### HMI Build And Bench Validation
+
+Pinned managed components: `espressif/esp_lcd_ili9341` 2.0.1 and `lvgl/lvgl`
+9.2.2. The component manager downloads them during configuration; generated
+sources are ignored and `dependencies.lock` records the resolved versions.
+HMI remains disabled by default; the normal image preserves UART-only use.
+Use `hmi_build` in the command notes for a separate enabled image, or enable
+`CONFIG_EGA_HMI` with `menuconfig` in the normal build after verifying wiring.
+The separate enabled image retains the existing ESP32/2 MB flash settings.
+
+Pending hardware checks: display identification/colors/text bounds, all 16
+keys and connector order, held/bouncing/multiple keys, invalid numbers and
+sweeps, I2C faults/recovery, NVS reboot restoration, and UART activity during
+a local sweep. Verify sweep timing with display updates active. Test SIM
+first: start 100000 Hz, stop 37500000 Hz, 100 points, total 10000 ms. Confirm
+incremental curves, then A during a long dwell, immediately after D, and at
+completion. Confirm home appears, BUSY eventually clears, and a fresh run
+resets the curves. A must not cancel a PC sweep; a BUSY rejection must not
+erase the current sample history. Test the one-point/equal-endpoint case and
+the 256-point limit. Only then test ADC with the verified analog frontend.
+Touch and SD logging remain out of scope. Compile checks and the existing
+host regression tests do not validate physical TFT/keypad behaviour or
+real-time cancellation latency.
+
 ## Compilación
 
 ### Windows: entorno local
@@ -166,6 +280,101 @@ un comando invalido (`ERR:unknown command`). Un barrido corto
 `f = <Hz> Hz | ADC = <raw>` y luego `OK:SWEEP_DONE` por UART2.
 Los logs del barrido siguen disponibles por USB-C.
 
+## Arquitectura concurrente (2026-11-08)
+
+`uart_console_init()` crea tres tareas y verifica la reserva de recursos:
+
+| Tarea | Prioridad | Responsabilidades |
+|-------|-----------|-------------------|
+| `uart_rx` | 5 | Consumir eventos de UART, ensamblar comandos y encolar operaciones |
+| `uart_tx` | 4 | Transmitir respuestas y tramas completas sin mezclar bytes |
+| `analyzer` | 3 | Configurar DDS, ejecutar adquisiciones/barridos y persistir ajustes |
+
+El ISR real del driver UART envia eventos a una cola de 16 elementos.
+`uart_rx` espera mediante `xQueueReceive`, sin sondeo periodico. Una cola
+de comandos de un elemento comunica el receptor con `analyzer`; una cola
+de 16 respuestas comunica los productores con `uart_tx`. Las colas copian
+las lineas, sin conservar punteros a buffers temporales. Una seccion
+critica protege las instantaneas de frecuencia, modo y estado.
+
+Durante una operacion se aceptan `PING`, `STATUS` y `HELP`. `STATUS`
+informa `STATUS=BUSY` o `STATUS=READY`. Otra configuracion, adquisicion o
+barrido devuelve `ERR:BUSY`: no se modifica el DDS desde el receptor.
+Las tramas de finalizacion se publican despues de liberar el estado ocupado.
+La GUI mantiene una sola transaccion; estas consultas concurrentes sirven
+para clientes que gestionen correctamente respuestas intercaladas.
+
+Un comando admite hasta 255 bytes antes del terminador. Una linea demasiado
+larga o con NUL se rechaza entera hasta el siguiente CR/LF. Ante overflow,
+error de paridad o framing se vacia RX y se informa un fallo; enviar un
+terminador y repetir el comando. Un fallo de creacion de tareas/colas se
+propaga al arranque y deshabilita la salida DDS.
+
+Validacion de hardware pendiente: cargar esta version, comprobar los tres
+nombres/prioridades en el log y enviar `PING`/`STATUS` durante
+`MSWEEP SIM 1000 3000 1000 1000`. Deben llegar tres muestras y
+`OK:MSWEEP_DONE`; `SETF 2000` durante el barrido debe dar `ERR:BUSY`.
+La HMI local y la validacion fisica del frontend siguen pendientes.
+
+## Barrido por cantidad de puntos y tiempo
+
+```text
+MSWEEP_POINTS SIM 50000 200003 4 201
+MSWEEP_POINTS ADC 50000 200003 4 201
+```
+
+Formato: `MSWEEP_POINTS <SIM|ADC> <inicio_Hz> <fin_Hz> <puntos> <total_ms>`.
+La respuesta conserva `DATA:V1` y termina con `OK:MSWEEP_POINTS_DONE`.
+Los puntos son lineales, incluyen ambos extremos y usan aritmetica entera:
+el ejemplo genera 50000, 100001, 150002 y 200003 Hz. Se permiten 1..10000
+puntos distintos; un solo punto exige inicio igual a fin. La cantidad no
+puede superar `fin - inicio + 1` con resolucion de 1 Hz.
+
+El tiempo solicitado es el presupuesto de adquisicion del barrido, no el
+tiempo de escritura NVS ni el de la ultima trama en el adaptador. Se limita
+a una hora y exige al menos un tick por punto: con `CONFIG_FREERTOS_HZ=100`,
+`total_ms >= puntos * 10`. Se redondea el presupuesto hacia arriba a ticks
+y se distribuyen plazos por punto; 201 ms se convierten en 210 ms.
+El firmware cuenta configuracion DDS, adquisicion y encolado entre plazos.
+Si se excede un plazo, aborta con `ERR:SWEEP failed: ESP_ERR_TIMEOUT`;
+la comprobacion final admite un tick de tolerancia. La salida final por UART
+puede llegar despues del presupuesto. No se omite la espera para recuperar
+tiempo perdido. Elegir margen suficiente para el DUT, ADC y transporte:
+el minimo permitido no garantiza un barrido util.
+
+Los comandos anteriores `SWEEP`/`MSWEEP` conservan incremento en Hz y dwell
+por punto; si el incremento no divide el rango, el ultimo punto sigue
+siendo menor que el limite final. La GUI conserva ambos modos. El parser
+de PC y el simulador aplican el tick actual de 10 ms; actualizar ese limite
+si se cambia la configuracion FreeRTOS del proyecto.
+
+## Persistencia NVS
+
+Se guarda un registro versionado en namespace `ega_analyzer`, clave `config`:
+frecuencia, forma de onda, rango, incremento/dwell o puntos/tiempo y fuente.
+Se escribe al cambiar frecuencia/forma de onda, al aceptar configuracion
+de barrido y al terminar un barrido real. No se escribe en cada punto.
+Un fallo de persistencia devuelve `ERR:`; una configuracion DDS ya aplicada
+puede seguir activa aunque no se haya guardado. No se informa exito falso.
+
+Al iniciar se valida version, longitud y rangos antes de restaurar. Un
+registro ausente/invalido usa seno de 1 kHz y parametros de barrido por
+defecto. No se reanuda un barrido interrumpido. La salida DDS se habilita
+despues de aplicar el estado restaurado. NVS no se borra automaticamente
+si no puede inicializarse; consultar el log para diagnosticar el fallo.
+
+`STATUS` conserva `FREQ`/`MODE` y agrega `STORAGE=READY|FAULT`, `RESTORED=0|1`,
+`START`, `STOP`, `STEP`, `DWELL_MS`, `POINTS`, `TOTAL_MS` y `SOURCE`.
+La GUI carga esos parametros desde el dispositivo al conectar o consultar
+STATUS. No son ajustes guardados en la PC. `RESTORED` describe el arranque,
+no indica si se guardaron cambios posteriores.
+
+Validacion en placa pendiente: ejecutar `SETF 2000`, `SETW TRI` y consultar
+STATUS; reiniciar y verificar 2000 Hz/TRI y `RESTORED=1`. Volver a SINE,
+ejecutar un `MSWEEP_POINTS SIM`, reiniciar y comprobar rango/puntos/tiempo
+en STATUS. Verificar por separado el fallo de almacenamiento y que no se
+inicie automaticamente un barrido. Estas pruebas no validan precision RF.
+
 ## GUI UART
 
 Crear un entorno separado desde el directorio del firmware:
@@ -195,6 +404,17 @@ error, con limites de tiempo total e inactividad calculados desde el barrido.
 Los puntos iniciales ya no se descartan y no existe el corte fijo de ocho
 segundos. La GUI procesa la transaccion fuera del hilo de Tk y bloquea
 comandos concurrentes mientras dura la adquisicion.
+
+Las curvas se redibujan durante la adquisicion, una vez por lote procesado
+en el ciclo de Tk de 50 ms. Cada ciclo consume como maximo 128 eventos para
+permitir que la interfaz atienda otros eventos. El CSV sigue requiriendo
+una transaccion completa y conserva fuente, flags y calibracion nominal.
+
+Pruebas locales sin abrir puertos ni ventanas:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest test_uart_measurement -v
+```
 
 ## AD8302: desarrollo previo a la llegada del modulo
 
@@ -236,6 +456,7 @@ MEAS SIM
 MEAS ADC
 MSWEEP SIM 1000 200000 1000 50
 MSWEEP ADC 1000 200000 1000 50
+MSWEEP_POINTS SIM 50000 200003 4 201
 ```
 
 `SIM` genera un DUT pasa-bajos ideal de primer orden con corte de 100 kHz;
@@ -256,7 +477,8 @@ OK:MEAS_DONE
 `F` esta en Hz; `SEQ` empieza en cero; `T_US` marca el inicio de adquisicion
 en microsegundos desde el arranque. Los campos RAW/SPAN usan cuentas;
 SPAN es maximo menos minimo. En simulacion son -1 porque no hubo ADC.
-MEAS termina con `OK:MEAS_DONE`; MSWEEP con `OK:MSWEEP_DONE`; un fallo
+MEAS termina con `OK:MEAS_DONE`; MSWEEP con `OK:MSWEEP_DONE`;
+MSWEEP_POINTS con `OK:MSWEEP_POINTS_DONE`; un fallo
 termina con `ERR:`. Los flags son una mascara:
 
 | Bit / valor | Significado |

@@ -11,6 +11,7 @@
 #include "ad8302_measurement.h"
 #include "frequency_sweep.h"
 #include "uart_console.h"
+#include "local_hmi.h"
 
 static const char *TAG = "EGA_FREQ_ANALYZER";
 
@@ -36,21 +37,27 @@ void app_main(void)
     }
 
     ad9834_set_output_sine();
-    ad9834_set_frequency_hz(1000U, AD9834_FREQ_REG0);
-    ad9834_enable(true);
+    ad9834_set_frequency_hz(AD9834_MIN_FREQUENCY_HZ, AD9834_FREQ_REG0);
 
     ret = ad8302_measurement_init();
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "ADC measurement unavailable: %s", esp_err_to_name(ret));
     }
 
-    uart_console_init();
-    xTaskCreate(uart_console_task, "uart_console", 4096, NULL, 5, NULL);
+    ret = uart_console_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "UART tasks unavailable: %s", esp_err_to_name(ret));
+        ad9834_enable(false);
+        return;
+    }
 
-    ESP_LOGI(TAG, "Generacion fija activa: 1 kHz en seno");
+    ESP_LOGI(TAG, "Generacion configurada; consultar STATUS para el estado restaurado");
     ESP_LOGI(TAG, "Terminal UART lista. Enviar HELP para ver comandos.");
 
-    while (1) {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+#ifdef CONFIG_EGA_HMI
+    ret = local_hmi_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Local HMI unavailable: %s", esp_err_to_name(ret));
     }
+#endif
 }

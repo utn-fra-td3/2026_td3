@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1080" viewBox="0 0 1500 1080">
+  <title>EGA frequency response analyzer block diagram</title>
+  <desc>System-level control, measurement and RF paths, 2026-11-14. Planned or physically unvalidated hardware uses dashed outlines. Pin assignments match the current firmware.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#34444c"/></marker></defs>
+  <style>
+    text { font-family: Consolas, monospace; font-size: 15px; fill: #172126; }
+    .title { font-family: Segoe UI, sans-serif; font-size: 27px; font-weight: bold; }
+    .heading { font-family: Segoe UI, sans-serif; font-size: 20px; font-weight: bold; }
+    .small { font-size: 13px; }
+    .box { fill: #f5f7f8; stroke: #34444c; stroke-width: 2; }
+    .core { fill: #e8f4ee; stroke: #126449; stroke-width: 2; }
+    .planned { fill: #fff; stroke: #815b10; stroke-width: 2; stroke-dasharray: 8 5; }
+    .wire { fill: none; stroke: #34444c; stroke-width: 2; marker-end: url(#arrow); }
+    .both { marker-start: url(#arrow); }
+    .rf { fill: none; stroke: #815b10; stroke-width: 2; stroke-dasharray: 8 5; marker-end: url(#arrow); }
+    .warn { fill: #a32626; }
+  </style>
+  <rect width="1500" height="1080" fill="white"/>
+  <text x="30" y="40" class="title">EGA | Frequency Response Analyzer Block Diagram</text>
+  <text x="30" y="68">2026-11-14 | Control, acquisition and proposed RF signal flow | GPIO numbers are not connector positions.</text>
+  <rect x="30" y="110" width="320" height="155" rx="4" class="box"/>
+  <text x="48" y="141" class="heading">PC application</text>
+  <text x="48" y="171">Python CLI / Tkinter GUI</text>
+  <text x="48" y="198">Sweep setup / live plots</text>
+  <text x="48" y="225">Calibration / CSV export</text>
+  <text x="48" y="250" class="small">SIM available for offline testing</text>
+  <rect x="435" y="110" width="540" height="310" rx="4" class="core"/>
+  <text x="455" y="141" class="heading">ESP32-WROVER-E + FreeRTOS</text>
+  <text x="455" y="172">Command validation / BUSY arbitration</text>
+  <text x="455" y="201">Generator and timed/count-based sweeps</text>
+  <text x="455" y="230">ADC1: GPIO36 magnitude, GPIO34 phase</text>
+  <text x="455" y="259">Calibrated mV when available / raw fallback</text>
+  <text x="455" y="288">Explicit synthetic measurement source</text>
+  <text x="455" y="317">NVS configuration restore / persistence</text>
+  <text x="455" y="346">3 core tasks + optional local HMI task</text>
+  <text x="455" y="375" class="small">Camera disconnected; GPIO16/17 reserved for PSRAM.</text>
+  <text x="455" y="399" class="small">ADC conversion calibration is not RF detector calibration.</text>
+  <path d="M350 185 H435" class="wire both"/>
+  <text x="32" y="298" class="small">PC link: USB-to-TTL / COM5 / 3.3 V logic</text>
+  <text x="32" y="321" class="small">UART2: TX25 / RX26, 115200 baud, 8N1</text>
+  <text x="32" y="344" class="small">Separate USB-C / CH340 / COM4:</text>
+  <text x="32" y="367" class="small">ESP32 board power, flash and debug logs.</text>
+  <rect x="1080" y="110" width="390" height="130" rx="4" class="planned"/>
+  <text x="1098" y="141" class="heading">KMRTM28028-SPI TFT</text>
+  <text x="1098" y="171">Local settings / state / last sample</text>
+  <text x="1098" y="198">SPI2: MOSI13, SCK14, CS27</text>
+  <text x="1098" y="225">DC32, RST33; touch / SD unused</text>
+  <path d="M975 185 H1080" class="wire"/>
+  <rect x="1080" y="290" width="390" height="130" rx="4" class="planned"/>
+  <text x="1098" y="321" class="heading">4x4 keypad + MCP23017</text>
+  <text x="1098" y="351">Rows PB0..3 / columns PA0..3</text>
+  <text x="1098" y="378">I2C: SDA21, SCL22 / 0x27</text>
+  <text x="1098" y="405">3.3 V logic / debounced inputs</text>
+  <path d="M1080 355 H975" class="wire"/>
+  <text x="1082" y="452" class="small">Optional HMI: default OFF; built but not</text>
+  <text x="1082" y="474" class="small">flashed / physically tested. Power TBD.</text>
+  <rect x="30" y="500" width="320" height="135" rx="4" class="box"/>
+  <text x="48" y="531" class="heading">AD9834 DDS module</text>
+  <text x="48" y="561">Sine1 source / MCLK set 75 MHz</text>
+  <text x="48" y="588">SPI3: MOSI23, SCK18, CS5</text>
+  <text x="48" y="615">RESET4; 1 kHz output checked</text>
+  <path d="M500 420 V457 H190 V500" class="wire"/>
+  <text x="270" y="446" class="small">Frequency / waveform control</text>
+  <rect x="435" y="500" width="540" height="135" rx="4" class="planned"/>
+  <text x="455" y="531" class="heading">ADC interface / proposed RC filters</text>
+  <text x="455" y="561">VMAG -&gt; 1 kohm -&gt; GPIO36</text>
+  <text x="455" y="588">VPHS -&gt; 1 kohm -&gt; GPIO34</text>
+  <text x="455" y="615">100 nF per ADC node to GND; no overvoltage clamp</text>
+  <path d="M705 500 V420" class="wire"/>
+  <rect x="1080" y="500" width="390" height="135" rx="4" class="planned"/>
+  <text x="1098" y="531" class="heading">AD8302 detector module</text>
+  <text x="1098" y="561">VMAG: logarithmic amplitude ratio</text>
+  <text x="1098" y="588">VPHS: folded phase, 0..180 degrees</text>
+  <text x="1098" y="615">Supply / outputs / RF range unverified</text>
+  <path d="M1080 566 H975" class="wire"/>
+  <text x="986" y="552" class="small">DC</text>
+  <text x="30" y="684" class="heading">Proposed analog / RF path</text>
+  <path d="M190 635 V735" class="rf"/>
+  <rect x="30" y="735" width="320" height="100" rx="4" class="planned"/>
+  <text x="48" y="766" class="heading">Reconstruction filter + driver</text>
+  <text x="48" y="796">50-ohm drive / amplitude budget</text>
+  <text x="48" y="821" class="small">Circuit and loaded response TBD</text>
+  <path d="M350 785 H435" class="rf"/>
+  <rect x="435" y="735" width="220" height="100" rx="4" class="planned"/>
+  <text x="453" y="766" class="heading">Matched splitter</text>
+  <text x="453" y="796">Two matched branches</text>
+  <text x="453" y="821" class="small">Loss / bandwidth TBD</text>
+  <path d="M655 765 H750" class="rf"/>
+  <rect x="750" y="735" width="225" height="65" rx="4" class="planned"/>
+  <text x="768" y="763" class="heading">DUT</text>
+  <text x="768" y="787" class="small">Device under test</text>
+  <path d="M975 765 H1185 V635" class="rf"/>
+  <text x="1000" y="747" class="small">DUT output -&gt; RFina</text>
+  <path d="M655 810 H700 V870 H1405 V635" class="rf"/>
+  <text x="770" y="855" class="small">Reference branch -&gt; RFinb</text>
+  <text x="1060" y="900" class="small">Optional attenuation in either branch:</text>
+  <text x="1060" y="923" class="small">choose only after checking RF levels.</text>
+  <text x="30" y="931" class="warn">Dashed hardware / RF blocks are planned or unvalidated, not confirmed installed connections.</text>
+  <text x="30" y="959" class="small">Common signal GND. Never apply RF or 5 V to ADC/GPIO. Vref is an output, not a detector supply input.</text>
+  <text x="30" y="984" class="small">AD8302 board marking: 0.1-2700 MHz. Project target 1 kHz..37.5 MHz is NOT a validated measurement range.</text>
+  <text x="30" y="1009" class="small">Verify coupling, termination, source loading, levels, settling and calibration. No direct tee into two 50-ohm loads.</text>
+  <text x="30" y="1045" class="small">Scope: gain and folded phase versus frequency; not a full VNA, signed-phase instrument or S11 measurement system.</text>
+</svg>

@@ -78,6 +78,32 @@ def export_measurements(path, samples):
         writer.writerows(samples)
 
 
+def sweep_plan(cmd):
+    tokens = cmd.split()
+    command = tokens[0].upper() if tokens else ""
+    if command not in {"SWEEP", "MSWEEP", "MSWEEP_POINTS"}:
+        raise ValueError("unknown sweep command")
+    offset = 1 if command == "SWEEP" else 2
+    if len(tokens) != offset + 4 or (offset == 2 and tokens[1] not in {"SIM", "ADC"}):
+        raise ValueError("invalid sweep arguments")
+    values = tokens[offset:]
+    if any(not token.isascii() or not token.isdecimal() for token in values):
+        raise ValueError("sweep arguments must be unsigned integers")
+    start, stop, spacing, timing = map(int, values)
+    if not 1 <= start <= stop <= MAX_DDS_FREQUENCY_HZ:
+        raise ValueError("invalid sweep range")
+    if command == "MSWEEP_POINTS":
+        if not (1 <= spacing <= min(10000, stop - start + 1) and
+                (spacing != 1 or start == stop) and spacing * 10 <= timing <= 3600000):
+            raise ValueError("invalid point count or sweep duration")
+        frequencies = [start + (stop - start) * index // (spacing - 1) for index in range(spacing)] if spacing > 1 else [start]
+        return frequencies, timing, timing / spacing
+    if not (1 <= spacing <= MAX_DDS_FREQUENCY_HZ and 1 <= timing <= 60000):
+        raise ValueError("invalid sweep step or dwell")
+    frequencies = range(start, stop + 1, spacing)
+    return frequencies, len(frequencies) * timing, timing
+
+
 def simulate_command(cmd, frequency_hz=1000, on_line=None):
     tokens = cmd.split()
     command = tokens[0].upper() if tokens else ""
@@ -85,18 +111,15 @@ def simulate_command(cmd, frequency_hz=1000, on_line=None):
         lines = ["OK:PONG"]
     elif command == "STATUS":
         lines = [f"OK:FREQ={frequency_hz},MODE=SINE,SOURCE=SIM"]
-    elif command in {"MEAS", "MSWEEP"} and len(tokens) > 1 and tokens[1] == "SIM":
+    elif command in {"MEAS", "MSWEEP", "MSWEEP_POINTS"} and len(tokens) > 1 and tokens[1] == "SIM":
         if command == "MEAS" and len(tokens) == 2:
-            start, stop, step, dwell = frequency_hz, frequency_hz, 1, 0
-        elif command == "MSWEEP" and len(tokens) == 6:
-            start, stop, step, dwell = map(int, tokens[2:])
-            if not (1 <= start <= stop <= MAX_DDS_FREQUENCY_HZ and
-                    1 <= step <= MAX_DDS_FREQUENCY_HZ and 1 <= dwell <= 60000):
-                raise ValueError("invalid simulated sweep configuration")
+            frequencies, duration_ms, dwell = [frequency_hz], 0, 0
+        elif command in {"MSWEEP", "MSWEEP_POINTS"}:
+            frequencies, duration_ms, dwell = sweep_plan(cmd)
         else:
             raise ValueError("invalid simulated measurement command")
         lines = []
-        for sequence, frequency in enumerate(range(start, stop + 1, step)):
+        for sequence, frequency in enumerate(frequencies):
             ratio = frequency / 100000.0
             mag_mv = 900.0 - 300.0 * math.log10(1.0 + ratio * ratio)
             phase_mv = 1800.0 - 10.0 * math.degrees(math.atan(ratio))
@@ -105,12 +128,16 @@ def simulate_command(cmd, frequency_hz=1000, on_line=None):
                 flags |= 4
             mag_mv = int(math.floor(max(30.0, min(1800.0, mag_mv)) + 0.5))
             phase_mv = int(math.floor(max(30.0, min(1800.0, phase_mv)) + 0.5))
-            lines.append(f"DATA:V1,F={frequency},SEQ={sequence},T_US={sequence * dwell * 1000},"
+            timestamp_us = sequence * dwell * 1000
+            if command == "MSWEEP_POINTS":
+                total_ticks = (duration_ms + 9) // 10
+                timestamp_us = (sequence + 1) * total_ticks // len(frequencies) * 10000
+            lines.append(f"DATA:V1,F={frequency},SEQ={sequence},T_US={int(timestamp_us)},"
                          f"SOURCE=SIM,MAG_RAW=-1,PHASE_RAW=-1,MAG_MV={mag_mv},PHASE_MV={phase_mv},"
                          f"MAG_SPAN=-1,PHASE_SPAN=-1,FLAGS={flags}")
         lines.append(f"OK:{command}_DONE")
     else:
-        lines = ["ERR:offline simulator supports PING, STATUS, MEAS SIM and MSWEEP SIM only"]
+        lines = ["ERR:offline simulator supports PING, STATUS and SIM measurements only"]
     if on_line is not None:
         for line in lines:
             on_line(line)
@@ -122,13 +149,12 @@ def validate_measurement_sweep(samples, cmd):
     if tokens and tokens[0].upper() == "MEAS":
         if len(tokens) != 2 or len(samples) != 1 or samples[0]["SEQ"] != 0 or samples[0]["SOURCE"] != tokens[1]:
             raise ValueError("incomplete or mismatched single measurement")
-    if tokens and tokens[0].upper() == "MSWEEP":
-        start, stop, step, _ = map(int, tokens[2:])
-        expected_count = (stop - start) // step + 1
-        if len(samples) != expected_count:
+    if tokens and tokens[0].upper() in {"MSWEEP", "MSWEEP_POINTS"}:
+        frequencies, _, _ = sweep_plan(cmd)
+        if len(samples) != len(frequencies):
             raise ValueError("incomplete measurement sweep")
         for sequence, sample in enumerate(samples):
-            if sample["SEQ"] != sequence or sample["F"] != start + sequence * step or sample["SOURCE"] != tokens[1]:
+            if sample["SEQ"] != sequence or sample["F"] != frequencies[sequence] or sample["SOURCE"] != tokens[1]:
                 raise ValueError("measurement sequence, frequency or source mismatch")
 
 
@@ -137,18 +163,45 @@ def command_timing(cmd):
     command = tokens[0].upper() if tokens else ""
     if command == "MEAS":
         return 5.0, 5.0, "OK:MEAS_DONE"
-    if command in {"SWEEP", "MSWEEP"}:
-        values = tokens[2:] if command == "MSWEEP" else tokens[1:]
+    if command in {"SWEEP", "MSWEEP", "MSWEEP_POINTS"}:
         try:
-            start, stop, step, dwell = map(int, values)
-            if not (1 <= start <= stop <= MAX_DDS_FREQUENCY_HZ and
-                    1 <= step <= MAX_DDS_FREQUENCY_HZ and 1 <= dwell <= 60000):
-                raise ValueError("invalid sweep configuration")
+            frequencies, duration_ms, dwell = sweep_plan(cmd)
         except ValueError:
             return 5.0, 5.0, "OK:" + command + "_DONE"
-        point_count = (stop - start) // step + 1
-        return 10.0 + point_count * (dwell / 1000.0 + 0.1), max(5.0, dwell / 1000.0 + 3.0), "OK:" + command + "_DONE"
+        return 10.0 + duration_ms / 1000.0 + len(frequencies) * 0.1, max(5.0, dwell / 1000.0 + 3.0), "OK:" + command + "_DONE"
     return 1.5, 1.5, None
+
+
+def parse_device_status(text):
+    if not text.startswith("OK:FREQ="):
+        return None
+    fields = {}
+    for column in next(csv.reader([text[3:]], strict=True)):
+        key, separator, value = column.partition("=")
+        if not separator or key in fields:
+            raise ValueError("invalid or duplicate status field")
+        fields[key] = value
+    if "MODE" not in fields or fields["MODE"] not in {"SINE", "TRI", "SQUARE"}:
+        raise ValueError("invalid device waveform")
+    if not fields["FREQ"].isascii() or not fields["FREQ"].isdecimal() or not 1 <= int(fields["FREQ"]) <= MAX_DDS_FREQUENCY_HZ:
+        raise ValueError("invalid device frequency")
+    sweep_fields = {"START", "STOP", "STEP", "DWELL_MS", "POINTS", "TOTAL_MS", "SOURCE"}
+    if (sweep_fields - {"SOURCE"}) & fields.keys():
+        if not sweep_fields <= fields.keys():
+            raise ValueError("incomplete device sweep settings")
+        numeric = sweep_fields - {"SOURCE"}
+        if any(not fields[key].isascii() or not fields[key].isdecimal() for key in numeric):
+            raise ValueError("invalid device sweep settings")
+        counted = int(fields["POINTS"]) != 0
+        command = "MSWEEP_POINTS" if counted else "MSWEEP"
+        spacing = fields["POINTS"] if counted else fields["STEP"]
+        timing = fields["TOTAL_MS"] if counted else fields["DWELL_MS"]
+        sweep_plan(f"{command} {fields['SOURCE']} {fields['START']} {fields['STOP']} {spacing} {timing}")
+    if "STORAGE" in fields and fields["STORAGE"] not in {"READY", "FAULT"}:
+        raise ValueError("invalid storage status")
+    if "RESTORED" in fields and fields["RESTORED"] not in {"0", "1"}:
+        raise ValueError("invalid restore status")
+    return fields
 
 
 def parse_frequency_status(text):
@@ -264,6 +317,7 @@ class UARTTerminalApp:
         self.current_frequency = 1000
         self.current_wave = "SINE"
         self.signal_label_var = tk.StringVar(value="DDS: 1000 Hz | SINE")
+        self.storage_var = tk.StringVar(value="Storage: unknown")
         self.last_manual_state_update = 0.0
         self._status_lock_seconds = 2.0
 
@@ -368,6 +422,7 @@ class UARTTerminalApp:
         status_frame = ttk.LabelFrame(sidebar, text="Status", padding=(8, 6))
         status_frame.pack(fill="x", pady=(0, 8))
         ttk.Label(status_frame, textvariable=self.status_var, foreground="#1d4ed8").pack(anchor="w")
+        ttk.Label(status_frame, textvariable=self.storage_var, wraplength=190).pack(anchor="w", pady=(4, 0))
 
         self._build_gui_controls(sidebar)
 
@@ -410,6 +465,15 @@ class UARTTerminalApp:
         ttk.Entry(entries, textvariable=self.sweep_dwell, width=8).pack(side="left", padx=4)
         ttk.Button(sweep_frame, text="SWEEP", command=self._sweep).pack(fill="x", pady=(8, 0))
 
+        ttk.Label(sweep_frame, text="Points / Total(ms):").pack(anchor="w", pady=(8, 0))
+        self.sweep_points = tk.StringVar(value="100")
+        self.sweep_total_ms = tk.StringVar(value="5000")
+        point_entries = ttk.Frame(sweep_frame)
+        point_entries.pack(fill="x", pady=(4, 0))
+        ttk.Entry(point_entries, textvariable=self.sweep_points, width=10).pack(side="left", padx=(0, 4))
+        ttk.Entry(point_entries, textvariable=self.sweep_total_ms, width=10).pack(side="left", padx=4)
+        ttk.Button(sweep_frame, text="MSWEEP_POINTS", command=self._measurement_sweep_points).pack(fill="x", pady=(8, 0))
+
         measurement_frame = ttk.LabelFrame(parent, text="AD8302", padding=10)
         measurement_frame.pack(fill="x", pady=(0, 8))
         self.measurement_source = tk.StringVar(value="SIM")
@@ -451,28 +515,35 @@ class UARTTerminalApp:
         self.root.destroy()
 
     def _update_signal_monitor(self, text):
-        if not text:
+        if not text or not text.startswith("OK:"):
             return
-
-        if text.startswith("DATA:"):
+        try:
+            settings = parse_device_status(text)
+        except (ValueError, csv.Error) as exc:
+            self._add_output(f"ERR:invalid device status: {exc}")
             return
-
-        if text.startswith("> "):
-            return
-
-        if text.startswith("OK:") or text.startswith("ERR:"):
-            if (time.monotonic() - self.last_manual_state_update) < self._status_lock_seconds:
-                return
-
+        if settings is not None:
+            if "STORAGE" in settings:
+                restored = "yes" if settings.get("RESTORED") == "1" else "no"
+                self.storage_var.set(f"Storage: {settings['STORAGE']} | Restored: {restored}")
+            if "START" in settings:
+                self.sweep_start.set(settings["START"])
+                self.sweep_stop.set(settings["STOP"])
+                if int(settings["POINTS"]) > 0:
+                    self.sweep_points.set(settings["POINTS"])
+                    self.sweep_total_ms.set(settings["TOTAL_MS"])
+                else:
+                    self.sweep_step.set(settings["STEP"])
+                    self.sweep_dwell.set(settings["DWELL_MS"])
+                if not self.simulate:
+                    self.measurement_source.set(settings["SOURCE"])
         freq, wave = parse_frequency_status(text)
-        if freq is not None and freq != 1000:
+        if freq is not None:
             self.current_frequency = freq
-        elif freq is not None and freq == 1000 and self.current_frequency != 1000:
-            return
-        if wave is not None and wave != "SINE":
+            self.freq_var.set(str(freq))
+        if wave is not None:
             self.current_wave = wave
-        elif wave is not None and wave == "SINE" and self.current_wave not in {"TRI", "SQUARE"}:
-            self.current_wave = wave
+            self.wave_var.set(wave)
 
         self.signal_label_var.set(f"DDS: {self.current_frequency} Hz | {self.current_wave}")
         if hasattr(self, "signal_canvas"):
@@ -564,7 +635,7 @@ class UARTTerminalApp:
         self.active_command = cmd
         self.transaction_error = False
         command = cmd.split()[0].upper()
-        if command in {"MEAS", "MSWEEP"}:
+        if command in {"MEAS", "MSWEEP", "MSWEEP_POINTS"}:
             self.measurements = []
             self.measurements_complete = False
         if command == "SWEEP":
@@ -586,8 +657,12 @@ class UARTTerminalApp:
         threading.Thread(target=worker, daemon=True).start()
 
     def _poll_transaction(self):
-        while not self.transaction_events.empty():
-            kind, value = self.transaction_events.get_nowait()
+        plot_dirty = False
+        for event_index in range(128):
+            try:
+                kind, value = self.transaction_events.get_nowait()
+            except queue.Empty:
+                break
             if kind == "done":
                 self.transaction_busy = False
                 if not self.transaction_error:
@@ -597,9 +672,9 @@ class UARTTerminalApp:
                         self.transaction_error = True
                         self._add_output(f"ERR:{exc}")
                 self.status_var.set("INCOMPLETE" if self.transaction_error else "COMPLETE")
-                if self.active_command.split()[0].upper() in {"MEAS", "MSWEEP"}:
+                if self.active_command.split()[0].upper() in {"MEAS", "MSWEEP", "MSWEEP_POINTS"}:
                     self.measurements_complete = not self.transaction_error
-                self._redraw_measurements()
+                plot_dirty = True
             elif kind == "error":
                 self.transaction_error = True
                 self._add_output(f"ERR:{value}")
@@ -611,12 +686,16 @@ class UARTTerminalApp:
                     sample = parse_measurement_line(value)
                     if sample is not None:
                         self.measurements.append(sample)
+                        plot_dirty = True
                     match = re.fullmatch(r"f\s*=\s*(\d+)\s*Hz\s*\|\s*ADC\s*=\s*(\d+)", value, re.IGNORECASE)
                     if match:
                         self.legacy_points.append((int(match[1]), int(match[2])))
+                        plot_dirty = True
                 except (ValueError, csv.Error) as exc:
                     self.transaction_error = True
                     self._add_output(f"ERR:invalid measurement: {exc}")
+        if plot_dirty:
+            self._redraw_measurements()
         self.root.after(50, self._poll_transaction)
 
     def _send_current_cmd(self):
@@ -779,6 +858,16 @@ class UARTTerminalApp:
     def _measurement_sweep(self):
         self._send_cmd(f"MSWEEP {self.measurement_source.get()} {self.sweep_start.get()} "
                        f"{self.sweep_stop.get()} {self.sweep_step.get()} {self.sweep_dwell.get()}")
+
+    def _measurement_sweep_points(self):
+        command = (f"MSWEEP_POINTS {self.measurement_source.get()} {self.sweep_start.get()} "
+                   f"{self.sweep_stop.get()} {self.sweep_points.get()} {self.sweep_total_ms.get()}")
+        try:
+            sweep_plan(command)
+        except ValueError as exc:
+            self._add_output(f"ERR:{exc}")
+            return
+        self._send_cmd(command)
 
     def run(self):
         self.root.mainloop()

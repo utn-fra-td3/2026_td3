@@ -116,8 +116,8 @@ esp_err_t ad9834_init(const ad9834_cfg_t *cfg)
     ad9834_reset();
     ad9834_write_register(0xC000U);
     ad9834_write_register(0xE000U);
-    ad9834_set_frequency_hz(0U, AD9834_FREQ_REG0);
-    ad9834_set_frequency_hz(0U, AD9834_FREQ_REG1);
+    ad9834_set_frequency_hz(AD9834_MIN_FREQUENCY_HZ, AD9834_FREQ_REG0);
+    ad9834_set_frequency_hz(AD9834_MIN_FREQUENCY_HZ, AD9834_FREQ_REG1);
 
     ESP_LOGI(TAG, "AD9834 configurado por SPI, MCLK=%lu Hz; salida en reset",
              (unsigned long)s_cfg.mclk_hz);
@@ -127,7 +127,8 @@ esp_err_t ad9834_init(const ad9834_cfg_t *cfg)
 uint32_t ad9834_get_max_frequency_hz(void)
 {
     uint32_t mclk_hz = s_cfg.mclk_hz != 0U ? s_cfg.mclk_hz : AD9834_MCLK_DEFAULT;
-    return mclk_hz / 2U;
+    uint32_t nyquist_hz = mclk_hz / 2U;
+    return nyquist_hz < AD9834_MAX_FREQUENCY_HZ ? nyquist_hz : AD9834_MAX_FREQUENCY_HZ;
 }
 
 void ad9834_reset(void)
@@ -184,7 +185,8 @@ void ad9834_set_frequency_hz(uint32_t frequency_hz, ad9834_frequency_register_t 
         s_cfg.mclk_hz = AD9834_MCLK_DEFAULT;
     }
 
-    if (frequency_hz > ad9834_get_max_frequency_hz()) {
+    if (frequency_hz < AD9834_MIN_FREQUENCY_HZ ||
+        frequency_hz > ad9834_get_max_frequency_hz()) {
         ESP_LOGE(TAG, "Frecuencia fuera de rango");
         return;
     }

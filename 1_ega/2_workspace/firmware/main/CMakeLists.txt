@@ -5,6 +5,7 @@ idf_component_register(
         "ad8302_measurement.c"
         "frequency_sweep.c"
         "uart_console.c"
+        "local_hmi.c"
     INCLUDE_DIRS
         "."
 )

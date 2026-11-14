@@ -2,6 +2,28 @@
 
 Subir en este directorio los archivos de esquemático y PCB en el software que se haya usado y sus vistas en .pdf.
 
+## Esquema de conexiones actual (2026-11-14)
+
+[Esquema modular editable, revision A](project_schematic.svg).
+[Vista de impresion A3 horizontal](project_schematic.html).
+Abrir la vista de impresion en un navegador y usar Imprimir / Guardar
+como PDF. La exportacion automatica con Edge no produjo un archivo
+verificable en esta sesion; no se incluye un PDF validado.
+Los nombres de red iguales representan conexiones electricas. Los numeros
+GPIO no son posiciones fisicas del conector.
+
+Incluye ESP32-WROVER-E, AD9834, UART2, TFT KMRTM28028-SPI, MCP23017,
+teclado 4x4 y filtros ADC propuestos. Los colores del cable MCP23017 y
+los nombres de pads AD8302 provienen de las fotos recibidas. El dibujo
+distingue la arquitectura existente de las conexiones propuestas: no es
+un esquema conforme a obra ni un diseno listo para fabricar un PCB.
+
+Siguen pendientes la alimentacion del breakout AD8302, el circuito de
+alimentacion/backlight del TFT, el presupuesto de corriente y el frontend
+RF. HMI y detector no estan verificados fisicamente. Para el AD8302 no
+se debe interpretar la antigua referencia a 5 V de abajo como una
+tension de alimentacion confirmada. El esquema deja VCC sin conectar.
+
 ## AD8302: frontend provisional (2026-11-07)
 
 Objetivo: DUT de 50 ohm, 1 kHz a 37.5 MHz, ganancia y fase plegada 0..180
