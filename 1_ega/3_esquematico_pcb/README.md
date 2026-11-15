@@ -20,13 +20,14 @@ un esquema conforme a obra ni un diseno listo para fabricar un PCB.
 
 Siguen pendientes la alimentacion del breakout AD8302, el circuito de
 alimentacion/backlight del TFT, el presupuesto de corriente y el frontend
-RF. HMI y detector no estan verificados fisicamente. Para el AD8302 no
+RF. El usuario confirmo mejora del teclado HMI; detector y frontend RF
+siguen sin validar. Para el AD8302 no
 se debe interpretar la antigua referencia a 5 V de abajo como una
 tension de alimentacion confirmada. El esquema deja VCC sin conectar.
 
 ## AD8302: frontend provisional (2026-11-07)
 
-Objetivo: DUT de 50 ohm, 1 kHz a 37.5 MHz, ganancia y fase plegada 0..180
+Objetivo vigente: DUT de 50 ohm, 100 kHz a 37.5 MHz, ganancia y fase plegada 0..180
 grados. La foto del modulo no sustituye un esquema ni confirma ese rango.
 No conectar siguiendo solamente el orden de pads de la foto rotada.
 
@@ -63,7 +64,7 @@ adaptacion de 50 ohm y aproximadamente 6 dB de perdida entre puertos,
 cuando todos estan terminados en 50 ohm. Es una opcion de estudio, no un
 PCB RF validado. Mantener cables de ramas equivalentes y layout compacto;
 a decenas de MHz no usar protoboard ni largos cables Dupont para RF.
-Un splitter comercial RF debe especificar funcionamiento a 1 kHz; muchos
+Un splitter comercial RF debe especificar funcionamiento a 100 kHz; muchos
 no llegan a esa frecuencia. No conectar un tee de dos cargas de 50 ohm:
 el generador veria 25 ohm.
 
@@ -99,7 +100,7 @@ antes de conectarlas al ESP32. No aplicar 5 V a GPIO del ESP32.
 - Obtener esquema o fotos nitidas de ambos lados y confirmar orden/funcion
 	de pads, conexiones MSET/PSET y suministro del modulo.
 - Verificar terminacion RF, capacitores de entrada, compensacion a baja
-	frecuencia y filtros de salidas. Determinan si 1 kHz es alcanzable.
+	frecuencia y filtros de salidas. Determinan si 100 kHz es alcanzable.
 - Definir carga de fuente, divisor, DUT y detector, perdidas/atenuacion y
 	amplitud cargada de ambas ramas en toda la banda.
 - Revisar pureza del DDS y filtro cerca de 37.5 MHz; Nyquist no garantiza

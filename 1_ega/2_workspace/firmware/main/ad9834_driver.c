@@ -185,7 +185,7 @@ void ad9834_set_frequency_hz(uint32_t frequency_hz, ad9834_frequency_register_t 
         s_cfg.mclk_hz = AD9834_MCLK_DEFAULT;
     }
 
-    if (frequency_hz < AD9834_MIN_FREQUENCY_HZ ||
+    if (frequency_hz < AD9834_MIN_OUTPUT_FREQUENCY_HZ ||
         frequency_hz > ad9834_get_max_frequency_hz()) {
         ESP_LOGE(TAG, "Frecuencia fuera de rango");
         return;

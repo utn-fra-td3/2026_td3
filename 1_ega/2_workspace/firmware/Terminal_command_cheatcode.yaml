@@ -13,9 +13,9 @@ firmware_terminal: |
   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
   . C:\ESP32\esp-idf\export.ps1
   Set-Location 'C:\CV_Tools\Automation\2026_td3\1_ega\2_workspace\firmware'
-  idf.py -B build_local build
-  idf.py -B build_local -p COM4 flash
-  idf.py -B build_local -p COM4 monitor
+  & 'C:\Espressif\python_env\idf6.2_py3.11_env\Scripts\python.exe' 'C:\ESP32\esp-idf\tools\idf.py' -B "$PWD/build_local" build
+  & 'C:\Espressif\python_env\idf6.2_py3.11_env\Scripts\python.exe' 'C:\ESP32\esp-idf\tools\idf.py' -B "$PWD/build_local" -p COM4 -b 460800 flash
+  & 'C:\Espressif\python_env\idf6.2_py3.11_env\Scripts\python.exe' 'C:\ESP32\esp-idf\tools\idf.py' -B "$PWD/build_local" -p COM4 monitor
 
 gui_terminal: |
   Set-Location 'C:\CV_Tools\Automation\2026_td3\1_ega\2_workspace\firmware'
@@ -23,15 +23,31 @@ gui_terminal: |
 
 offline_counted_sweep: |
   Set-Location 'C:\CV_Tools\Automation\2026_td3\1_ega\2_workspace\firmware'
-  .\.venv\Scripts\python.exe uart_terminal.py --simulate --command "MSWEEP_POINTS SIM 50000 200003 4 201" --csv "$env:TEMP\ega_counted_sim.csv"
+  .\.venv\Scripts\python.exe uart_terminal.py --simulate --command "MSWEEP_POINTS SIM 100000 37500000 100 10000" --csv "$env:TEMP\ega_counted_sim.csv"
 
 protocol_tests: |
   Set-Location 'C:\CV_Tools\Automation\2026_td3\1_ega\2_workspace\firmware'
   .\.venv\Scripts\python.exe -m unittest test_uart_measurement -v
 
 hmi_build: |
+  $env:Path = "C:\Espressif\tools\python;$env:Path"
+  $env:IDF_TOOLS_PATH = 'C:\Espressif'
+  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+  . 'C:\ESP32\esp-idf\export.ps1'
+  $env:Path = "C:\Espressif\tools\xtensa-esp-elf\esp-16.1.0_20260609\xtensa-esp-elf\bin;$env:Path"
+  Get-Command xtensa-esp32-elf-gcc-ar, xtensa-esp32-elf-gcc-ranlib -CommandType Application -ErrorAction Stop | Out-Null
   Set-Location 'C:\CV_Tools\Automation\2026_td3\1_ega\2_workspace\firmware'
-  idf.py -B "$PWD/build_local/hmi_validation" -D "SDKCONFIG=$PWD/build_local/hmi_validation/sdkconfig" -D "SDKCONFIG_DEFAULTS=$PWD/sdkconfig;$PWD/sdkconfig.hmi" build
+  & 'C:\Espressif\python_env\idf6.2_py3.11_env\Scripts\python.exe' 'C:\ESP32\esp-idf\tools\idf.py' -B "$PWD/build_local/hmi_validation" -D "SDKCONFIG=$PWD/build_local/hmi_validation/sdkconfig" -D "SDKCONFIG_DEFAULTS=$PWD/sdkconfig;$PWD/sdkconfig.hmi" build
+
+hmi_flash: |
+  $env:Path = "C:\Espressif\tools\python;$env:Path"
+  $env:IDF_TOOLS_PATH = 'C:\Espressif'
+  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+  . 'C:\ESP32\esp-idf\export.ps1'
+  $env:Path = "C:\Espressif\tools\xtensa-esp-elf\esp-16.1.0_20260609\xtensa-esp-elf\bin;$env:Path"
+  Get-Command xtensa-esp32-elf-gcc-ar, xtensa-esp32-elf-gcc-ranlib -CommandType Application -ErrorAction Stop | Out-Null
+  Set-Location 'C:\CV_Tools\Automation\2026_td3\1_ega\2_workspace\firmware'
+  & 'C:\Espressif\python_env\idf6.2_py3.11_env\Scripts\python.exe' 'C:\ESP32\esp-idf\tools\idf.py' -B "$PWD/build_local/hmi_validation" -p COM4 -b 460800 flash
 
 notes:
   - "COM4 is the ESP32 USB-C bridge for flashing and logs; COM5 is the FTDI adapter for commands."
@@ -40,12 +56,21 @@ notes:
   - "Set the adapter to 3.3 V: green TXD to GPIO26, blue RXD to GPIO25, black GND to GND; leave red VCC disconnected."
   - "The camera is already disconnected; keep it unused because it shares GPIO25/26."
   - "Do not reuse build/: its cache contains paths from the previous PC."
-  - "The GUI waveform preview is synthetic, not an oscilloscope measurement."
+  - "GUI: DDS configuration opens frequency/waveform settings. Main screen has start Hz, stop Hz, points and total ms, each with a Set button, plus Simulation/Measurement, Start sweep and Export CSV. Set validates and saves only the chosen value with other applied values and the selected source, retaining other drafts and previous plots/CSV. Start sweep still uses all visible fields. Serial commands are in Diagnostics."
+  - "SWEEP_CONFIG <SIM|ADC> <start> <stop> <points> <total_ms> saves a valid sweep configuration in NVS and returns a STATUS-format frame without acquisition or DDS output changes; BUSY gating and sweep limits still apply. Used by the sweep Set buttons; rebuild/hmi_flash is required."
   - "MSWEEP_POINTS <SIM|ADC> <start> <stop> <points> <total_ms> includes both endpoints; total_ms must be at least points * 10 with the current 100 Hz RTOS tick."
   - "Firmware saves configuration in NVS; STATUS reports STORAGE and RESTORED plus sweep settings. Reboot restoration still needs verification on the board."
-  - "HMI is disabled by default. Run hmi_build after loading ESP-IDF; it creates a separate enabled image without flashing."
-  - "Local SINE HMI: B next field, digits edit, # accept, * backspace, C SIM/ADC, D start, A stop/home at any point. SIM is the boot default."
-  - "Local sweeps retain all 1..256 points and show live gain/folded-phase plots on log Hz axes. Try 1000..200000 Hz, 100 points, 10000 ms with the AD8302 disconnected."
+  - "HMI is disabled by default. Run hmi_build once to configure the separate enabled image, then hmi_flash. Both blocks load ESP-IDF and select its Python explicitly. firmware_terminal builds/flashes the non-HMI image."
+  - "Run each entire PowerShell block in the same terminal. Both HMI blocks explicitly add the installed Xtensa bin directory and check gcc-ar/gcc-ranlib before invoking IDF; if the toolchain version changes, update that directory in both blocks."
+  - "If bare idf.py reports missing esp_pylib, use the explicit IDF Python commands above; do not reinstall tools solely for that error."
+  - "DDS configuration/SETF accepts 1..37500000 Hz. Sweep endpoints remain 100000..37500000 Hz inclusive, on local HMI and UART; smaller positive sweep steps are allowed. Boot defaults remain unchanged; valid saved DDS settings can restore below 100 kHz. Invalid saved settings fall back to defaults."
+  - "DDS configuration errors remain visible in the DDS window until another DDS setting is submitted; background STATUS polling does not clear them. Empty, noninteger and out-of-range frequency entries are rejected without sending a command."
+  - "Local SINE HMI: B next field, digits edit, # accept, * backspace, C SIM/ADC, D start, A stop/home at any point. Fresh defaults use ADC, 100 points and 10000 ms; valid saved settings restore source too. Accepting a corrected numeric entry replaces the previous error message."
+  - "Local HMI rejects invalid points/time on #, B or D: points 1..256 must fit the Hz span (one point requires equal endpoints); total time is at least points * 10 ms and at most 180000 ms (3 minutes). The same maximum applies to every UART sweep, including tick-rounded legacy dwell. Invalid edits keep the prior draft value. Increase time before increasing points when needed; A clears a rejected edit. Keypad hints are split into three spaced two-column rows."
+  - "Applied sweep settings/source stay synchronized without starting: GUI Set/source selection and local #/B acceptance or C source change save through SWEEP_CONFIG. Whole settings must remain valid; BUSY rejects saves for retry. The GUI polls STATUS every second while idle, deferring text edits and preserving plots/results. Unaccepted numeric edits remain drafts; GUI Set/source saves preserve other unsubmitted fields. Local plots retain their settings until Home. UART counts above 256 display unchanged but need reduction before a local start. Rebuild, hmi_flash and restart the GUI; verify both synchronization directions on the board."
+  - "GUI and local HMI retain nominal gain/phase curves with RANGE! and a persistent sweep warning count for suspect inputs; flagged points are not omitted or switched to mV. Without ADC voltage calibration both plot raw counts. Warnings do not imply valid measurements; CSV retains all original samples and flags."
+  - "Local sweeps retain all 1..256 points on log Hz axes. MAG opens first; B toggles the enlarged MAG/PHS plots during or after acquisition without losing data. Try 100000..37500000 Hz, 100 points, 10000 ms in SIM with the AD8302 disconnected. Rebuild and flash the HMI image to apply the plot change."
   - "A cancels only local sweeps, outside the BUSY queue. Wait for READY before restarting; stopping leaves the DDS output at its last setting. UART commands and 10000-point limit are unchanged."
   - "HMI pins are provisional: TFT SCK14/MOSI13/CS27/DC32/RESET33; MCP23017 SDA21/SCL22 at 3.3 V, address 0x27 with open Waveshare jumpers."
   - "Keypad rows GPB0..3, columns GPA0..3. Verify physical connector order and delivered TFT power/backlight labels before wiring."
+  - "Keypad scans run in a separate hmi_keypad task with two-scan debounce and queued events; display rendering does not block scanning. TFT horizontal mirroring is configured in local_hmi.c."

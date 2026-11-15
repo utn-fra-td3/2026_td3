@@ -135,6 +135,6 @@
   <path d="M 1228 1071 H 1270" class="rf"/>
   <text x="1280" y="1076">AD8302 RFinb (reference)</text>
   <text x="52" y="1115" class="small warn">No direct DDS-to-dual-50-ohm tee. Verify source loading, both RF levels, termination, coupling and frequency response.</text>
-  <text x="52" y="1137" class="small">Board marking: 0.1-2700 MHz; 1 kHz is NOT established. No RF on ADC pins. Use coax, not long breadboard/Dupont RF wiring.</text>
+  <text x="52" y="1137" class="small">Board: 0.1-2700 MHz. Target 100 kHz..37.5 MHz is NOT calibrated. No RF on ADC pins; use coax, not long Dupont RF wiring.</text>
   <text x="35" y="1175" class="small">Solid module outlines: existing DDS / controller / UART architecture. Dashed outlines: proposed additions or unresolved circuitry. NC = no connection.</text>
 </svg>

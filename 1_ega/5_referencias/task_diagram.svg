@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1140" viewBox="0 0 1500 1140">
   <title>EGA firmware task and communication diagram</title>
-  <desc>Current firmware, 2026-11-14. Three core application tasks and one optional HMI task. Priorities, stacks, queues, shared status and driver callbacks are distinguished. Not a hardware validation claim.</desc>
+  <desc>Current firmware, 2026-11-14. Three core application tasks and two optional HMI/keypad tasks. Priorities, stacks, queues, shared status and driver callbacks are distinguished. Not a hardware validation claim.</desc>
   <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#34444c"/></marker></defs>
   <style>
     text { font-family: Consolas, monospace; font-size: 15px; fill: #172126; }
@@ -48,10 +48,10 @@
   <text x="47" y="480" class="heading">local_hmi | Priority 2</text>
   <text x="47" y="507">Stack: 6144 bytes</text>
   <text x="47" y="534">Optional CONFIG_EGA_HMI</text>
-  <text x="47" y="561">Keypad scan + debounce</text>
+  <text x="47" y="561">LVGL + queued key events</text>
   <text x="47" y="588">SINE setup / live gain + phase</text>
   <text x="47" y="615">10 ms normal loop delay</text>
-  <text x="47" y="643" class="small">Default OFF; not hardware-tested</text>
+  <text x="47" y="643" class="small">Default OFF; bench checks pending</text>
   <path d="M340 510 H400" class="wire"/>
   <text x="48" y="415" class="small">Local sweep starts use the same BUSY gate</text>
   <path d="M600 560 V620" class="wire"/>
@@ -93,10 +93,17 @@
   <text x="1000" y="866" class="small">TFT DMA completion callback releases the</text>
   <text x="1000" y="888" class="small">LVGL flush; callback is not an app task.</text>
   <path d="M600 860 V950" class="wire"/>
+  <rect x="30" y="920" width="310" height="135" rx="4" class="optional"/>
+  <text x="47" y="947" class="heading">hmi_keypad | Priority 2</text>
+  <text x="47" y="974">Stack: 3072 bytes</text>
+  <text x="47" y="999">Scan / two-scan debounce</text>
+  <text x="47" y="1024" class="small">16-int queue: keys / I2C state</text>
+  <text x="47" y="1045" class="small">10 ms healthy-loop delay</text>
+  <path d="M30 985 H15 V575 H30" class="wire"/>
   <rect x="400" y="950" width="1030" height="105" rx="4" class="box"/>
   <text x="420" y="980" class="heading">Analyzer services / hardware access</text>
   <text x="420" y="1008">AD9834 SPI3 | ADC1 paired samples / calibration | explicit SIM source | NVS flash</text>
-  <text x="420" y="1035" class="small">Only analyzer executes queued device operations. HMI uses separate SPI2 and MCP23017 I2C.</text>
+  <text x="420" y="1035" class="small">Output/sweep: 100 kHz..37.5 MHz. HMI uses SPI2; keypad task owns MCP23017 I2C scanning.</text>
   <text x="30" y="1090" class="small">Startup: app_main initializes DDS / ADC, restores configuration via console init, starts UART tasks, then optional HMI.</text>
   <text x="30" y="1115" class="small">Green = application task. Yellow = queue. Dashed box = optional task; dashed arrows = shared state. SDK tasks omitted.</text>
 </svg>

@@ -16,6 +16,18 @@ y medir la relacion entre entrada y salida del DUT para obtener curvas de
 ganancia y fase plegada con el AD8302. El camino ADC de un canal se conserva
 para pruebas previas y compatibilidad.
 
+## Rango vigente (2026-11-14)
+
+Configuracion DDS (`SETF`): **1..37500000 Hz**. Extremos de barrido local
+y UART: **100000..37500000 Hz**, inclusive.
+El limite superior corresponde a MCLK=75 MHz dividido por dos;
+no garantiza pureza de seno ni exactitud de medicion cerca de Nyquist.
+El incremento de un barrido puede ser menor que 100 kHz. Los barridos del
+HMI, GUI, UART y simulador conservan su limite inferior de 100 kHz.
+Sin ajustes NVS validos, se inicia en SINE de 100 kHz y rango de barrido
+100 kHz..37.5 MHz. Las mediciones historicas a 1 kHz documentadas abajo
+son compatibles con el rango DDS, pero no con el rango de barrido.
+
 ## Arquitectura propuesta
 
 1. El ESP32 configura el AD9834 por SPI.
@@ -59,7 +71,7 @@ para pruebas previas y compatibilidad.
 
 ## Tareas pendientes
 
-- [ ] Definir el rango operativo del barrido para el DUT; el maximo del DDS es 37.5 MHz con MCLK de 75 MHz.
+- [x] Definir rango de software: DDS 1 Hz..37.5 MHz; barridos 100 kHz..37.5 MHz con MCLK de 75 MHz; banda RF util pendiente de caracterizacion.
 - [ ] Definir la resolución en Hz por paso.
 - [x] Seleccionar detector AD8302 con dos ADC para ganancia y fase plegada.
 - [ ] Diseñar el circuito de acondicionamiento y atenuación.
@@ -78,7 +90,9 @@ para pruebas previas y compatibilidad.
 The optional HMI provides SINE sweep setup and live magnitude/phase plots.
 The user reports the TFT, expander and keypad connected; the camera and
 AD8302 remain disconnected. Wiring/controller assumptions below still need
-bench validation. This HMI firmware has not been flashed or physically tested.
+bench validation. Earlier HMI builds were flashed; the user confirmed improved
+keypad response with independent scanning. The frequency-limit build passed
+compilation but its flashing and physical boundary tests are not confirmed.
 
 | Signal | Connection |
 |--------|------------|
@@ -115,19 +129,41 @@ The expected physical key layout is `123A / 456B / 789C / *0#D`.
 |-----|--------|
 | 0..9 | Home: enter a replacement numeric value |
 | * | Home: backspace |
-| # | Home: accept the value into the local draft only |
+| # | Home: validate and save the value to shared settings |
 | A | Return home and cancel an active local sweep; clear unfinished entry |
-| B | Home: accept entry and select the next field |
-| C | Home: toggle SIM/ADC source |
+| B | Home: accept/save and select next field; plot: toggle MAG/PHS |
+| C | Home: toggle and save SIM/ADC source |
 | D | Home: validate settings, select SINE and start the sweep |
 
 Sweep fields are start Hz, stop Hz, points (1..256) and total ms. Both
 endpoints are included, with linearly spaced integer-Hz samples. One point
 requires equal endpoints. Total time must allow at least 10 ms/point at the
-current 100 Hz RTOS tick and cannot exceed one hour. Saved sweep settings
-seed the home draft at startup, capped to 256 points; the source deliberately
-defaults to SIM on every boot while the AD8302/frontend is not connected.
-Editing values or changing source does not affect hardware until D.
+current 100 Hz RTOS tick and cannot exceed three minutes (180000 ms).
+The same duration limit applies to UART, including legacy step/dwell commands
+after rounding each dwell up to RTOS ticks. Fresh defaults are 100 points,
+10000 ms and ADC; valid saved settings, including source, are restored.
+Press C to change between ADC and SIM.
+Accepting a corrected numeric entry replaces the previous error message.
+Point count and duration are checked when accepting an entry with #, B or D,
+not only at sweep start. Invalid entries retain the previous shared
+value and stay in the edit box for correction. Point count must also fit
+the integer-Hz span; increasing it requires enough total time already set.
+If prompted to increase time first, A clears the rejected entry, then B
+selects total ms. The keypad legend uses three spaced rows: B/C for field
+and source, */# for delete/accept, and A/D for stop-home/start. Plot controls
+A and B are shown separately below the readout.
+Accepting a value with # or B, or changing source with C, saves the valid
+configuration through the analyzer worker and NVS without starting a sweep.
+The entire proposed range, point count and duration must be valid together.
+BUSY rejects the update; retry after the current operation finishes.
+These saves do not change DDS output or acquire ADC data; D starts the sweep.
+
+Both interfaces track the analyzer's last applied sweep settings. The local
+home refreshes after a UART configuration change, including source, once no
+numeric entry is in progress. Existing plot views retain their own settings
+until returning home. UART point counts above 256 are displayed accurately,
+but must be reduced to 256 or fewer before a local start. Unconfirmed edits are
+drafts, not shared settings; a newly applied configuration can replace them.
 
 Local starts reserve the same BUSY gate as UART operations. Selecting SINE
 and executing the sweep happen within one analyzer request, without an
@@ -135,13 +171,20 @@ intervening UART command. SIM uses the existing synthetic 100 kHz low-pass
 response: SINE is selected, but the DDS frequency is not swept in SIM mode.
 ADC sweeps program the DDS and acquire the detector after settling.
 
-During a sweep, both plots update about every 100 ms. Their shared horizontal
-axis is logarithmic frequency in Hz (k/M suffixes); gain is -30..+30 dB and
+Sweeps open on the enlarged MAG plot. Press B to switch to PHS and back,
+during acquisition or after completion, without restarting or losing data.
+The desktop and local display share a light instrument theme: teal MAG,
+coral PHS, amber warnings and red faults. The local settings use aligned
+numeric rows with the active field highlighted; keypad actions are unchanged.
+Both datasets update about every 100 ms, with one plot visible at a time.
+Their horizontal axis is logarithmic frequency in Hz (k/M suffixes); gain is -30..+30 dB and
 phase is folded magnitude 0..180 degrees, not signed lead/lag. ADC values use
 nominal detector coefficients (900 mV at 0 dB, 30 mV/dB, 10 mV/degree) and
 are explicitly labelled NOM, not detector-calibrated. Without ADC voltage
-calibration, raw counts replace the readout and no gain/phase curve is
-fabricated. Suspect input ranges show RANGE!; completed/error plots remain
+calibration, both interfaces plot raw counts instead of nominal gain/phase.
+Suspect input ranges retain nominal curves and show RANGE!, not trusted
+measurements. The warning count persists for the whole sweep, even when
+later points are clean; completed/error plots remain
 visible until A. The local sample history retains every point, up to 256,
 so slower display refresh does not lose intermediate samples. UART sweeps
 retain their existing 10000-point limit and protocol.
@@ -155,10 +198,14 @@ The home screen remains BUSY until the analyzer acknowledges cancellation
 Stopping a sweep leaves the DDS at its last setting; it does not disable
 its output. Local samples/results do not enter PC UART transactions.
 
-The HMI task runs at priority 2, below the analyzer and UART tasks. LVGL owns
-the screen and uses a DMA-capable partial framebuffer. Key scanning requires
-three matching scans, accepts one key only, and requires release before the
-next key. Inactive rows remain inputs to avoid row-output contention.
+The HMI task runs at priority 2 with a 6144-byte stack, below the analyzer
+and UART tasks. LVGL owns the screen and uses a DMA-capable partial framebuffer.
+Horizontal mirroring is configured explicitly for the delivered display.
+The separate `hmi_keypad` task uses priority 2 and a 3072-byte stack; its
+16-integer event queue carries key presses and I2C fault/recovery notifications
+to the LVGL task. Two matching scans accept a stable transition, with release
+required before the next single key. Display rendering does not block scans.
+Inactive rows remain inputs to avoid row-output contention.
 I2C transfers have 20 ms timeouts; faults suppress input and retry slowly,
 restoring keypad configuration and requiring release after recovery.
 An initialization failure is logged and leaves the UART analyzer available.
@@ -172,6 +219,8 @@ HMI remains disabled by default; the normal image preserves UART-only use.
 Use `hmi_build` in the command notes for a separate enabled image, or enable
 `CONFIG_EGA_HMI` with `menuconfig` in the normal build after verifying wiring.
 The separate enabled image retains the existing ESP32/2 MB flash settings.
+Use `hmi_flash` after `hmi_build` to load that image on COM4; the normal
+`firmware_terminal` block builds/flashes the UART-only image instead.
 
 Pending hardware checks: display identification/colors/text bounds, all 16
 keys and connector order, held/bouncing/multiple keys, invalid numbers and
@@ -213,8 +262,8 @@ $env:IDF_TOOLS_PATH = 'C:\Espressif'
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 . C:\ESP32\esp-idf\export.ps1
 Set-Location 'C:\CV_Tools\Automation\2026_td3\1_ega\2_workspace\firmware'
-idf.py --version
-idf.py -B build_local build
+& 'C:\Espressif\python_env\idf6.2_py3.11_env\Scripts\python.exe' 'C:\ESP32\esp-idf\tools\idf.py' --version
+& 'C:\Espressif\python_env\idf6.2_py3.11_env\Scripts\python.exe' 'C:\ESP32\esp-idf\tools\idf.py' -B "$PWD/build_local" build
 ```
 
 No reutilizar `build/`: conserva rutas de la PC anterior. El target ya es
@@ -227,6 +276,13 @@ el directorio de herramientas `C:\Espressif` y el entorno Python creado en
 terminal antes de compilar. El interprete `.venv` de la GUI no reemplaza al
 Python de ESP-IDF.
 
+Usar Python ESP-IDF explicitamente incluso despues de `export.ps1`: en esta
+PC el comando suelto `idf.py` puede usar otro interprete y fallar con
+`No module named 'esp_pylib'`. El modulo esta instalado en el entorno IDF;
+ese error no implica que falte el firmware ni que COM4 este averiado.
+Definir solamente `IDF_PATH`/`IDF_TOOLS_PATH` no sustituye la exportacion
+completa del entorno en una terminal nueva.
+
 ## Carga en la placa
 
 COM4 usa un puente USB-SERIAL CH340. Esptool identifica un ESP32-D0WD-V3,
@@ -235,8 +291,8 @@ configuracion de 2 MB porque la imagen y las particiones caben en ella.
 Cerrar cualquier programa que use COM4.
 
 ```powershell
-idf.py -B build_local -p COM4 flash
-idf.py -B build_local -p COM4 monitor
+& 'C:\Espressif\python_env\idf6.2_py3.11_env\Scripts\python.exe' 'C:\ESP32\esp-idf\tools\idf.py' -B "$PWD/build_local" -p COM4 -b 460800 flash
+& 'C:\Espressif\python_env\idf6.2_py3.11_env\Scripts\python.exe' 'C:\ESP32\esp-idf\tools\idf.py' -B "$PWD/build_local" -p COM4 monitor
 ```
 
 Salir del monitor con `Ctrl+]` antes de volver a cargar firmware. Si no conecta,
@@ -274,9 +330,9 @@ en `/dev/serial/by-id/` o `/dev/ttyUSB*`.
 Validacion fisica pendiente: primero probar el adaptador separado del ESP32
 uniendo verde TXD con azul RXD y comprobando eco en un terminal a 115200 8N1.
 Retirar ese puente antes de conectar al ESP32. Tras cargar el firmware,
-comprobar `PING`, `STATUS`, `SETF 2000`, `SETW TRI`, `SETW SINE`, `ADC` y
+comprobar `PING`, `STATUS`, `SETF 200000`, `SETW TRI`, `SETW SINE`, `ADC` y
 un comando invalido (`ERR:unknown command`). Un barrido corto
-`SWEEP 1000 3000 1000 50` debe entregar tres lineas
+`SWEEP 100000 102000 1000 50` debe entregar tres lineas
 `f = <Hz> Hz | ADC = <raw>` y luego `OK:SWEEP_DONE` por UART2.
 Los logs del barrido siguen disponibles por USB-C.
 
@@ -289,6 +345,8 @@ Los logs del barrido siguen disponibles por USB-C.
 | `uart_rx` | 5 | Consumir eventos de UART, ensamblar comandos y encolar operaciones |
 | `uart_tx` | 4 | Transmitir respuestas y tramas completas sin mezclar bytes |
 | `analyzer` | 3 | Configurar DDS, ejecutar adquisiciones/barridos y persistir ajustes |
+| `local_hmi` (opcional) | 2 | LVGL, campos locales, curvas y consumo de eventos del teclado; stack 6144 bytes |
+| `hmi_keypad` (opcional) | 2 | Escaneo MCP23017, debounce de dos scans y cola de 16 eventos; stack 3072 bytes |
 
 El ISR real del driver UART envia eventos a una cola de 16 elementos.
 `uart_rx` espera mediante `xQueueReceive`, sin sondeo periodico. Una cola
@@ -312,27 +370,27 @@ propaga al arranque y deshabilita la salida DDS.
 
 Validacion de hardware pendiente: cargar esta version, comprobar los tres
 nombres/prioridades en el log y enviar `PING`/`STATUS` durante
-`MSWEEP SIM 1000 3000 1000 1000`. Deben llegar tres muestras y
-`OK:MSWEEP_DONE`; `SETF 2000` durante el barrido debe dar `ERR:BUSY`.
-La HMI local y la validacion fisica del frontend siguen pendientes.
+`MSWEEP SIM 100000 102000 1000 1000`. Deben llegar tres muestras y
+`OK:MSWEEP_DONE`; `SETF 200000` durante el barrido debe dar `ERR:BUSY`.
+La concurrencia completa con HMI y la validacion fisica del frontend siguen pendientes.
 
 ## Barrido por cantidad de puntos y tiempo
 
 ```text
-MSWEEP_POINTS SIM 50000 200003 4 201
-MSWEEP_POINTS ADC 50000 200003 4 201
+MSWEEP_POINTS SIM 100000 250003 4 201
+MSWEEP_POINTS ADC 100000 250003 4 201
 ```
 
 Formato: `MSWEEP_POINTS <SIM|ADC> <inicio_Hz> <fin_Hz> <puntos> <total_ms>`.
 La respuesta conserva `DATA:V1` y termina con `OK:MSWEEP_POINTS_DONE`.
 Los puntos son lineales, incluyen ambos extremos y usan aritmetica entera:
-el ejemplo genera 50000, 100001, 150002 y 200003 Hz. Se permiten 1..10000
+el ejemplo genera 100000, 150001, 200002 y 250003 Hz. Se permiten 1..10000
 puntos distintos; un solo punto exige inicio igual a fin. La cantidad no
 puede superar `fin - inicio + 1` con resolucion de 1 Hz.
 
 El tiempo solicitado es el presupuesto de adquisicion del barrido, no el
 tiempo de escritura NVS ni el de la ultima trama en el adaptador. Se limita
-a una hora y exige al menos un tick por punto: con `CONFIG_FREERTOS_HZ=100`,
+a tres minutos (180000 ms) y exige al menos un tick por punto: con `CONFIG_FREERTOS_HZ=100`,
 `total_ms >= puntos * 10`. Se redondea el presupuesto hacia arriba a ticks
 y se distribuyen plazos por punto; 201 ms se convierten en 210 ms.
 El firmware cuenta configuracion DDS, adquisicion y encolado entre plazos.
@@ -344,7 +402,8 @@ el minimo permitido no garantiza un barrido util.
 
 Los comandos anteriores `SWEEP`/`MSWEEP` conservan incremento en Hz y dwell
 por punto; si el incremento no divide el rango, el ultimo punto sigue
-siendo menor que el limite final. La GUI conserva ambos modos. El parser
+siendo menor que el limite final. Siguen disponibles en Diagnostics y CLI;
+el formulario principal usa solo puntos/tiempo total. El parser
 de PC y el simulador aplican el tick actual de 10 ms; actualizar ese limite
 si se cambia la configuracion FreeRTOS del proyecto.
 
@@ -358,8 +417,9 @@ Un fallo de persistencia devuelve `ERR:`; una configuracion DDS ya aplicada
 puede seguir activa aunque no se haya guardado. No se informa exito falso.
 
 Al iniciar se valida version, longitud y rangos antes de restaurar. Un
-registro ausente/invalido usa seno de 1 kHz y parametros de barrido por
-defecto. No se reanuda un barrido interrumpido. La salida DDS se habilita
+registro ausente/invalido, incluida una frecuencia DDS fuera de 1..37500000 Hz,
+usa seno de 100 kHz y parametros de barrido por defecto. No se reanuda un
+barrido interrumpido. La salida DDS se habilita
 despues de aplicar el estado restaurado. NVS no se borra automaticamente
 si no puede inicializarse; consultar el log para diagnosticar el fallo.
 
@@ -369,8 +429,8 @@ La GUI carga esos parametros desde el dispositivo al conectar o consultar
 STATUS. No son ajustes guardados en la PC. `RESTORED` describe el arranque,
 no indica si se guardaron cambios posteriores.
 
-Validacion en placa pendiente: ejecutar `SETF 2000`, `SETW TRI` y consultar
-STATUS; reiniciar y verificar 2000 Hz/TRI y `RESTORED=1`. Volver a SINE,
+Validacion en placa pendiente: ejecutar `SETF 200000`, `SETW TRI` y consultar
+STATUS; reiniciar y verificar 200000 Hz/TRI y `RESTORED=1`. Volver a SINE,
 ejecutar un `MSWEEP_POINTS SIM`, reiniciar y comprobar rango/puntos/tiempo
 en STATUS. Verificar por separado el fallo de almacenamiento y que no se
 inicie automaticamente un barrido. Estas pruebas no validan precision RF.
@@ -396,8 +456,44 @@ Seleccionar `.venv\Scripts\python.exe` en VS Code para editar la GUI.
 estar incluido en Python. Los comandos tambien estan en
 `Terminal_command_cheatcode.yaml` como bloques PowerShell dentro de YAML.
 
+La pantalla principal tiene inicio Hz, fin Hz, puntos y tiempo total ms,
+selector Simulation/Measurement, Start sweep y Export CSV. Usa el comando
+`MSWEEP_POINTS` e incluye ambos extremos; el limite por UART sigue siendo
+10000 puntos, con al menos 10 ms/punto y como maximo tres minutos (180000 ms).
+Cada parametro tiene un boton Set: valida y guarda solo ese valor junto con
+los otros valores ya aplicados y la fuente seleccionada, sin iniciar barrido
+ni modificar la salida DDS. Los otros campos sin confirmar conservan sus
+borradores. Si se aumenta puntos, confirmar primero un tiempo suficiente.
+Cambiar Simulation/Measurement tambien guarda la fuente inmediatamente,
+usando los valores numericos ya aplicados y sin confirmar otros borradores.
+La seleccion cambia al recibir la confirmacion del dispositivo; si hay una
+transaccion en curso, el cambio se rechaza y conserva la fuente aplicada.
+Start sweep sigue validando y usando todos los campos visibles.
+El comando `SWEEP_CONFIG <SIM|ADC> <inicio> <fin> <puntos> <total_ms>` valida
+y guarda la configuracion en NVS; responde con el mismo formato de STATUS,
+sin tramas DATA. Usa la cola y exclusividad BUSY compartidas con el HMI.
+El boton DDS configuration abre otra ventana para frecuencia y forma de
+onda, con Set frequency y Set waveform independientes. Los comandos y el
+registro serial quedan en la pestana Diagnostics. Se elimino el preview
+sintetico de la pantalla; las dos curvas corresponden al barrido adquirido.
+Los errores de validacion y conexion tambien aparecen en el estado principal.
+Los ajustes antiguos incremento/dwell se muestran como puntos/tiempo total.
+Solo la configuracion DDS permite frecuencias desde 1 Hz; los barridos siguen
+desde 100000 Hz. Los errores DDS aparecen en su propia ventana y permanecen
+visibles durante las consultas STATUS, hasta enviar otro ajuste DDS. Una
+entrada vacia, no entera o fuera de rango no envia comandos ni cambia la salida.
+
+La GUI consulta STATUS cada segundo cuando el puerto esta libre. Los cambios
+aplicados desde el HMI local actualizan los campos sin reconectar; la consulta
+no borra las curvas, el CSV disponible ni el resultado del ultimo barrido.
+Se pospone la actualizacion mientras un campo de texto tiene foco, incluso
+si la respuesta llega despues de empezar a editar. Un STATUS sin cambios no
+sobrescribe borradores. La GUI comparte los ajustes al pulsar Set o iniciar
+un barrido; los borradores locales se comparten con D. La configuracion
+aplicada mas reciente es la autoridad.
+
 Validacion inicial: `PING` debe responder `OK:PONG`; `STATUS` muestra
-frecuencia y modo; probar `SETF 1000` y `SETW SINE`.
+frecuencia y modo; probar `SETF 100000` y `SETW SINE`.
 
 El lector usa una unica transaccion hasta la respuesta de finalizacion o
 error, con limites de tiempo total e inactividad calculados desde el barrido.
@@ -418,9 +514,9 @@ Pruebas locales sin abrir puertos ni ventanas:
 
 ## AD8302: desarrollo previo a la llegada del modulo
 
-Estado (2026-11-07): implementacion de software, sin carga de esta version
-en el ESP32 ni validacion fisica del AD8302. El objetivo es un DUT de 50 ohm,
-desde 1 kHz hasta 37.5 MHz, con fase plegada de 0 a 180 grados. Ese rango
+Estado actualizado (2026-11-14): software implementado, AD8302 desconectado
+y sin validacion fisica del detector. El objetivo es un DUT de 50 ohm,
+desde 100 kHz hasta 37.5 MHz, con fase plegada de 0 a 180 grados. Ese rango
 es un objetivo: los capacitores del modulo pueden limitar el extremo bajo
 y la calidad del DDS cerca de Nyquist puede limitar el extremo alto.
 
@@ -454,9 +550,9 @@ Nuevos comandos (fuente obligatoria y explicita):
 ```text
 MEAS SIM
 MEAS ADC
-MSWEEP SIM 1000 200000 1000 50
-MSWEEP ADC 1000 200000 1000 50
-MSWEEP_POINTS SIM 50000 200003 4 201
+MSWEEP SIM 100000 200000 1000 50
+MSWEEP ADC 100000 200000 1000 50
+MSWEEP_POINTS SIM 100000 250003 4 201
 ```
 
 `SIM` genera un DUT pasa-bajos ideal de primer orden con corte de 100 kHz;
@@ -493,7 +589,16 @@ La GUI convierte nominalmente `gain_db = (MAG_MV - 900) / 30` y
 offset y pendiente con el modulo real: estos coeficientes no son una
 calibracion. Los CSV incluyen fuente, flags, cuentas, mV, frecuencia,
 secuencia, tiempo y `CALIBRATION=NOMINAL_DETECTOR`.
-La GUI omite puntos con flags 2/4 de las curvas, pero los conserva en CSV.
+La GUI y la HMI local usan la misma politica: con calibracion de tension ADC,
+conservan todas las conversiones nominales, incluidos los puntos con flag 4,
+y muestran RANGE! con el total de advertencias del barrido. No se omiten
+puntos ni se cambia a mV por advertencias de rango. Estos puntos siguen
+siendo sospechosos, no mediciones fiables. Si falta calibracion de tension
+ADC (flag 2), ambas interfaces muestran todo el barrido en cuentas raw de
+MAG/PHS, sin fabricar ganancia/fase. Las etiquetas indican unidades y causa;
+el CSV conserva todos los valores y flags originales. Un detector desconectado,
+una entrada saturada o una tension fuera de rango requieren revisar hardware;
+mostrar datos raw no corrige esas condiciones.
 Los flags de rango no prueban presencia de RF ni niveles absolutos validos.
 La fase plegada no permite distinguir adelanto de atraso, y no debe
 interpretarse como fase firmada o corregirse por resta universal del thru.
@@ -504,20 +609,29 @@ Desde este directorio, el mismo entorno de la GUI permite ejecutar:
 
 ```powershell
 .\.venv\Scripts\python.exe uart_terminal.py --simulate --gui
-.\.venv\Scripts\python.exe uart_terminal.py --simulate --command "MSWEEP SIM 10000 200000 10000 50" --csv ad8302_sim.csv
+.\.venv\Scripts\python.exe uart_terminal.py --simulate --command "MSWEEP_POINTS SIM 100000 37500000 100 10000" --csv ad8302_sim.csv
 .\.venv\Scripts\python.exe -m unittest test_uart_measurement -v
 ```
 
 El modo offline no abre ningun puerto serial y no espera el dwell en tiempo
-real; sus timestamps son los tiempos del barrido modelado. Usar MSWEEP para
-obtener ambas curvas, y Export CSV para una transaccion de medicion completa.
-El preview DDS sigue siendo sintetico. Sin `--simulate`, SIM requiere la
+real; sus timestamps son los tiempos del barrido modelado. Usar Start sweep
+para obtener ambas curvas, y Export CSV para una transaccion completa.
+Sin `--simulate`, SIM requiere la
 nueva version de firmware y funciona por UART2; no confundir ambos modos.
 
 Verificacion local: build ESP-IDF completo; pruebas de parser, conversion
 nominal, flags, CSV, simulacion, secuencia y respuestas UART fragmentadas,
 en lotes grandes, con timeout/desconexion y barridos de mas de ocho segundos.
-Smoke test Tk offline: 20 puntos y ambas curvas renderizadas, sin puerto.
+Regresion de GUI simplificada: 51 pruebas pasan, con ventanas Tk reales,
+limites de layout a 800x620, ventana DDS unica, restauracion de ajustes,
+100 puntos simulados, ambas curvas y exportacion CSV, sin puerto.
+Incluye ADC raw sin calibracion, curvas nominales con rango sospechoso,
+barridos mixtos con advertencia persistente, colores de estado y etiquetas
+sin superponer ejes. Layout de escritorio revisado en 800x620 y 1040x740.
+Build HMI MAG/PHS correcto; falta cargar y verificar en placa la politica
+unificada, incluidas las curvas raw y las advertencias persistentes.
+La sincronizacion al aceptar valores/fuente y el comando UART SWEEP_CONFIG
+tambien requieren cargar este build y verificar ambos sentidos en placa.
 Las advertencias Pylance de dependencias preexistentes dependen del
 interprete seleccionado; las pruebas usan el `.venv` local documentado.
 
@@ -541,8 +655,9 @@ El firmware esta configurado para un MCLK de 75 MHz. Se midieron
 aproximadamente 3 kHz en Sine1 al solicitar 1 kHz con la configuracion
 anterior de 25 MHz; tras cambiar el MCLK configurado, Sine1 mide 1 kHz.
 La medicion confirma el ajuste para este modulo.
-El rango de frecuencia aceptado por el firmware y la GUI es de 1 Hz a
-37.5 MHz (MCLK/2), el maximo especificado para el AD9834.
+El rango DDS aceptado por el firmware y la GUI es de 1 Hz a
+37.5 MHz (MCLK/2); los barridos conservan el minimo de 100 kHz.
+Las mediciones de 1 kHz siguientes son historicas.
 Prueba adicional con la GUI (2026-11-01): el control de frecuencia funciona;
 `SINE` y `TRI` aparecen en Sine1 y Sine2 con 180 grados de desfase, y
 `SQUARE` aparece en la salida Square.
@@ -553,8 +668,8 @@ modulo, niveles logicos y tierra comun. No aplicar 5 V a
 GPIO del ESP32, ni una onda bipolar directamente a GPIO36: el ADC necesita
 una entrada acondicionada dentro de sus limites.
 
-Las respuestas UART solo confirman estado de software. La vista de onda de
-la GUI es sintetica y los datos ADC son cuentas sin calibracion. Verificar
+Las respuestas UART solo confirman estado de software. SIM es sintetico y
+la conversion ADC usa coeficientes nominales del detector. Verificar
 la salida real con osciloscopio o contador de frecuencia.
 
 ### Correcciones del driver AD9834 (2026-10-30)
@@ -582,10 +697,10 @@ Referencia de registros y formato de transferencia:
 
 ### Primera prueba en Sine1
 
-1. Seleccionar `SETW SINE` y `SETF 1000`, o reiniciar la placa.
+1. Seleccionar `SETW SINE` y `SETF 100000`; reiniciar puede restaurar otro ajuste NVS valido.
 2. Conectar punta a Sine1 y masa al GND del modulo. Usar entrada de 1 Mohm,
 	 no terminacion de 50 ohm, salvo que el esquema del modulo la requiera.
-3. Comenzar con acoplamiento DC, 200 us/div y unos 100 mV/div; ajustar
+3. Comenzar con acoplamiento DC, 2 us/div y unos 100 mV/div; ajustar
 	 sensibilidad y posicion segun la amplitud y offset del modulo. Ajustar
 	 el factor de sonda en el osciloscopio.
 4. Verificar RESET/GPIO4 bajo tras iniciar, alimentacion y tierra comun.
@@ -593,7 +708,7 @@ Referencia de registros y formato de transferencia:
 	 de la lectura de salida y todavia debe contrastarse con el oscilador del
 	 modulo. Ajustar `mclk_hz` en `main/main.c` si la medicion de MCLK difiere.
 5. Si sigue sin senal, observar FSYNC/GPIO5, SCLK/GPIO18 y SDATA/GPIO23 al
-	 reiniciar o enviar `SETF 1000`: FSYNC bajo durante cada palabra de 16 bits,
+	 reiniciar o enviar `SETF 100000`: FSYNC bajo durante cada palabra de 16 bits,
 	 reloj de 1 MHz y datos MSB primero. Revisar tambien SLEEP y las entradas
 	 de seleccion del modulo segun su esquema; no dejarlas flotantes.
 

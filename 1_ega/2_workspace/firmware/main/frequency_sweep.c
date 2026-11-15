@@ -49,13 +49,20 @@ esp_err_t sweep_validate(const sweep_config_t *cfg)
     if (cfg->point_count != 0U) {
         if (cfg->point_count > 10000U || cfg->point_count > cfg->stop_hz - cfg->start_hz + 1U ||
             (cfg->point_count == 1U && cfg->start_hz != cfg->stop_hz) ||
-            cfg->total_time_ms == 0U || cfg->total_time_ms > 3600000U ||
+            cfg->total_time_ms == 0U || cfg->total_time_ms > SWEEP_MAX_TOTAL_TIME_MS ||
             (uint64_t)cfg->total_time_ms * configTICK_RATE_HZ < (uint64_t)cfg->point_count * 1000U) {
             return ESP_ERR_INVALID_ARG;
         }
     } else if (cfg->step_hz == 0U || cfg->step_hz > ad9834_get_max_frequency_hz() ||
                cfg->dwell_ms == 0U || cfg->dwell_ms > 60000U || cfg->total_time_ms != 0U) {
         return ESP_ERR_INVALID_ARG;
+    }
+    if (cfg->point_count == 0U) {
+        uint32_t points = (cfg->stop_hz - cfg->start_hz) / cfg->step_hz + 1U;
+        uint64_t ticks = ((uint64_t)cfg->dwell_ms * configTICK_RATE_HZ + 999U) / 1000U;
+        if ((uint64_t)points * ticks * 1000U > (uint64_t)SWEEP_MAX_TOTAL_TIME_MS * configTICK_RATE_HZ) {
+            return ESP_ERR_INVALID_ARG;
+        }
     }
     return ESP_OK;
 }

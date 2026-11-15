@@ -16,6 +16,7 @@ typedef void (*sweep_measurement_callback_t)(const ad8302_sample_t *sample, uint
 typedef bool (*sweep_cancel_callback_t)(void *context);
 
 #define SWEEP_ERR_CANCELLED ESP_ERR_NOT_FINISHED
+#define SWEEP_MAX_TOTAL_TIME_MS 180000U
 
 typedef struct {
     uint32_t start_hz;

@@ -32,7 +32,7 @@
   <text x="455" y="259">Calibrated mV when available / raw fallback</text>
   <text x="455" y="288">Explicit synthetic measurement source</text>
   <text x="455" y="317">NVS configuration restore / persistence</text>
-  <text x="455" y="346">3 core tasks + optional local HMI task</text>
+  <text x="455" y="346">3 core tasks + optional HMI / keypad tasks</text>
   <text x="455" y="375" class="small">Camera disconnected; GPIO16/17 reserved for PSRAM.</text>
   <text x="455" y="399" class="small">ADC conversion calibration is not RF detector calibration.</text>
   <path d="M350 185 H435" class="wire both"/>
@@ -52,8 +52,8 @@
   <text x="1098" y="378">I2C: SDA21, SCL22 / 0x27</text>
   <text x="1098" y="405">3.3 V logic / debounced inputs</text>
   <path d="M1080 355 H975" class="wire"/>
-  <text x="1082" y="452" class="small">Optional HMI: default OFF; built but not</text>
-  <text x="1082" y="474" class="small">flashed / physically tested. Power TBD.</text>
+  <text x="1082" y="452" class="small">Optional HMI: default OFF; keypad improved</text>
+  <text x="1082" y="474" class="small">per user. Full bench validation pending.</text>
   <rect x="30" y="500" width="320" height="135" rx="4" class="box"/>
   <text x="48" y="531" class="heading">AD9834 DDS module</text>
   <text x="48" y="561">Sine1 source / MCLK set 75 MHz</text>
@@ -97,7 +97,7 @@
   <text x="1060" y="923" class="small">choose only after checking RF levels.</text>
   <text x="30" y="931" class="warn">Dashed hardware / RF blocks are planned or unvalidated, not confirmed installed connections.</text>
   <text x="30" y="959" class="small">Common signal GND. Never apply RF or 5 V to ADC/GPIO. Vref is an output, not a detector supply input.</text>
-  <text x="30" y="984" class="small">AD8302 board marking: 0.1-2700 MHz. Project target 1 kHz..37.5 MHz is NOT a validated measurement range.</text>
+  <text x="30" y="984" class="small">AD8302 marking: 0.1-2700 MHz. Software range 100 kHz..37.5 MHz is NOT a calibrated measurement range.</text>
   <text x="30" y="1009" class="small">Verify coupling, termination, source loading, levels, settling and calibration. No direct tee into two 50-ohm loads.</text>
   <text x="30" y="1045" class="small">Scope: gain and folded phase versus frequency; not a full VNA, signed-phase instrument or S11 measurement system.</text>
 </svg>

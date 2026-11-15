@@ -81,8 +81,8 @@ static uint32_t s_sample_sequence;
 static sweep_config_t s_last_sweep = {
     .start_hz = AD9834_MIN_FREQUENCY_HZ,
     .stop_hz = AD9834_MAX_FREQUENCY_HZ,
-    .step_hz = 1000U,
-    .dwell_ms = 50U,
+    .point_count = 100U,
+    .total_time_ms = 10000U,
     .adc_channel = AD8302_MAG_CHANNEL,
     .measurement_source = AD8302_SOURCE_ADC,
 };
@@ -143,7 +143,7 @@ static void restore_configuration(void)
         size_t size = sizeof(settings);
         ret = nvs_get_blob(s_settings_store, "config", &settings, &size);
         if (ret == ESP_OK && size == sizeof(settings) && settings.version == 1U &&
-            settings.frequency_hz >= AD9834_MIN_FREQUENCY_HZ && settings.frequency_hz <= ad9834_get_max_frequency_hz() &&
+            settings.frequency_hz >= AD9834_MIN_OUTPUT_FREQUENCY_HZ && settings.frequency_hz <= ad9834_get_max_frequency_hz() &&
             settings.waveform <= 2U) {
             sweep_config_t restored = {
                 .start_hz = settings.start_hz,
@@ -266,6 +266,7 @@ static void handle_help(void)
     uart_send_line("  MEAS <SIM|ADC>");
     uart_send_line("  MSWEEP <SIM|ADC> <start> <stop> <step> <dwell_ms>");
     uart_send_line("  MSWEEP_POINTS <SIM|ADC> <start> <stop> <points> <total_ms>");
+    uart_send_line("  SWEEP_CONFIG <SIM|ADC> <start> <stop> <points> <total_ms>");
     uart_send_line("  HELP");
 }
 
@@ -278,7 +279,7 @@ static void handle_set_frequency(char *args)
 
     char *end = NULL;
     long freq = strtol(args, &end, 10);
-    if (end == args || freq < AD9834_MIN_FREQUENCY_HZ ||
+    if (end == args || freq < AD9834_MIN_OUTPUT_FREQUENCY_HZ ||
         freq > ad9834_get_max_frequency_hz()) {
         uart_send_error("invalid frequency");
         return;
@@ -452,7 +453,7 @@ static bool local_sweep_cancelled(void *context)
     return cancelled;
 }
 
-static void handle_sweep(char *args, bool measurement, bool counted)
+static void handle_sweep(char *args, bool measurement, bool counted, bool configure_only)
 {
     if (args == NULL) {
         uart_send_error("sweep requires start stop step dwell_ms");
@@ -480,7 +481,7 @@ static void handle_sweep(char *args, bool measurement, bool counted)
         uart_send_error("unexpected sweep argument");
         return;
     }
-    if (!s_local_sweep && measurement && source == AD8302_SOURCE_ADC && strcmp(s_current_wave, "SINE") != 0) {
+    if (!configure_only && !s_local_sweep && measurement && source == AD8302_SOURCE_ADC && strcmp(s_current_wave, "SINE") != 0) {
         uart_send_error("AD8302 measurement requires SINE");
         return;
     }
@@ -519,6 +520,14 @@ static void handle_sweep(char *args, bool measurement, bool counted)
     portEXIT_CRITICAL(&s_state_lock);
     if (persist_configuration() != ESP_OK) {
         uart_send_error("sweep settings persistence failed");
+        return;
+    }
+    if (configure_only) {
+        if (s_local_command) {
+            uart_send_ok("SETTINGS UPDATED");
+        } else {
+            handle_status();
+        }
         return;
     }
     ret = sweep_run(&cfg);
@@ -577,13 +586,15 @@ static void dispatch_line(char *line)
     } else if (strcmp(command, "ADC") == 0) {
         handle_adc();
     } else if (strcmp(command, "SWEEP") == 0) {
-        handle_sweep(save, false, false);
+        handle_sweep(save, false, false, false);
     } else if (strcmp(command, "MEAS") == 0) {
         handle_measurement(save);
     } else if (strcmp(command, "MSWEEP") == 0) {
-        handle_sweep(save, true, false);
+        handle_sweep(save, true, false, false);
     } else if (strcmp(command, "MSWEEP_POINTS") == 0) {
-        handle_sweep(save, true, true);
+        handle_sweep(save, true, true, false);
+    } else if (strcmp(command, "SWEEP_CONFIG") == 0) {
+        handle_sweep(save, true, true, true);
     } else {
         uart_send_error("unknown command");
     }
@@ -706,7 +717,7 @@ static void submit_line(char *line)
     if (strcmp(command, "SETF") != 0 && strcmp(command, "SETW") != 0 &&
         strcmp(command, "ADC") != 0 && strcmp(command, "SWEEP") != 0 &&
         strcmp(command, "MEAS") != 0 && strcmp(command, "MSWEEP") != 0 &&
-        strcmp(command, "MSWEEP_POINTS") != 0) {
+        strcmp(command, "MSWEEP_POINTS") != 0 && strcmp(command, "SWEEP_CONFIG") != 0) {
         uart_send_error("unknown command");
         return;
     }
