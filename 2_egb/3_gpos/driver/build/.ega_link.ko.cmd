@@ -1,1 +1,0 @@
-savedcmd_ega_link.ko := aarch64-linux-gnu-ld -r -EL  -maarch64elf -z noexecstack --no-warn-rwx-segments --build-id=sha1  -T /usr/src/linux-headers-6.18.50+rpt-rpi-v8/arch/arm64/module.lds -o ega_link.ko ega_link.o ega_link.mod.o .module-common.o
