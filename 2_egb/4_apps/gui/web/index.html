@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGA Control</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: Inter, Arial, sans-serif;
+        background: #0b1120;
+        color: #e5e7eb;
+        min-height: 100vh;
+    }
+
+    header {
+        padding: 22px 28px;
+        border-bottom: 1px solid #1f2937;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #0f172a;
+    }
+
+    .title h1 {
+        margin: 0;
+        font-size: 24px;
+    }
+
+    .title p {
+        margin: 5px 0 0;
+        color: #94a3b8;
+        font-size: 14px;
+    }
+
+    .connection {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+    }
+
+    .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #ef4444;
+    }
+
+    .dot.connected {
+        background: #22c55e;
+        box-shadow: 0 0 10px #22c55e;
+    }
+
+    main {
+        max-width: 1100px;
+        margin: auto;
+        padding: 26px;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .card {
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 16px;
+        padding: 22px;
+    }
+
+    .card h2 {
+        margin-top: 0;
+        font-size: 17px;
+        color: #f8fafc;
+    }
+
+    .position {
+        text-align: center;
+    }
+
+    .angle {
+        font-size: 58px;
+        font-weight: 700;
+        margin: 20px 0 4px;
+    }
+
+    .unit {
+        color: #94a3b8;
+        font-size: 16px;
+    }
+
+    .target {
+        color: #94a3b8;
+        margin-top: 14px;
+    }
+
+    .input-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 14px;
+    }
+
+    input {
+        width: 100%;
+        border: 1px solid #334155;
+        background: #0f172a;
+        color: white;
+        border-radius: 10px;
+        padding: 11px 12px;
+        font-size: 15px;
+    }
+
+    input:focus {
+        outline: none;
+        border-color: #3b82f6;
+    }
+
+    button {
+        border: 0;
+        border-radius: 10px;
+        padding: 11px 16px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        background: #2563eb;
+        color: white;
+    }
+
+    button:hover {
+        background: #1d4ed8;
+    }
+
+    button.secondary {
+        background: #1e293b;
+    }
+
+    button.secondary:hover {
+        background: #334155;
+    }
+
+    button.selected {
+        background: #2563eb;
+    }
+
+    .pid-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    label {
+        display: block;
+        color: #94a3b8;
+        font-size: 13px;
+        margin-bottom: 6px;
+    }
+
+    .profile-buttons {
+        display: flex;
+        gap: 10px;
+    }
+
+    .profile-buttons button {
+        flex: 1;
+    }
+
+    .telemetry {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .metric {
+        background: #0f172a;
+        border-radius: 12px;
+        padding: 14px;
+    }
+
+    .metric span {
+        display: block;
+        color: #94a3b8;
+        font-size: 12px;
+    }
+
+    .metric strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 19px;
+    }
+
+    .full {
+        grid-column: span 2;
+    }
+
+    #message {
+        margin-top: 20px;
+        min-height: 24px;
+        font-size: 14px;
+    }
+
+    .success {
+        color: #4ade80;
+    }
+
+    .error {
+        color: #f87171;
+    }
+
+    @media (max-width: 750px) {
+        .grid {
+            grid-template-columns: 1fr;
+        }
+
+        .full {
+            grid-column: span 1;
+        }
+
+        .pid-grid,
+        .telemetry {
+            grid-template-columns: 1fr;
+        }
+
+        header {
+            padding: 18px;
+        }
+
+        main {
+            padding: 16px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<header>
+
+    <div class="title">
+        <h1>Control de posición EGA</h1>
+        <p>Técnicas Digitales III · EGA / EGB</p>
+    </div>
+
+    <div class="connection">
+        <div id="connectionDot" class="dot"></div>
+        <span id="connectionText">Desconectado</span>
+    </div>
+
+</header>
+
+
+<main>
+
+<div class="grid">
+
+    <!-- POSICION -->
+
+    <div class="card position">
+
+        <h2>Posición del motor</h2>
+
+        <div>
+            <span id="position" class="angle">--</span>
+            <span class="unit">°</span>
+        </div>
+
+        <div class="target">
+            Objetivo:
+            <strong id="setpoint">--</strong> °
+        </div>
+
+        <div class="input-group">
+
+            <input
+                id="angleInput"
+                type="number"
+                min="0"
+                max="360"
+                step="0.1"
+                placeholder="Ángulo 0 - 360"
+            >
+
+            <button onclick="setAngle()">
+                Mover
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- PERFIL -->
+
+    <div class="card">
+
+        <h2>Perfil de movimiento</h2>
+
+        <div class="profile-buttons">
+
+            <button
+                id="btnEscalon"
+                class="secondary"
+                onclick="setProfile('ESCALON')"
+            >
+                Escalón
+            </button>
+
+            <button
+                id="btnRampa"
+                class="secondary"
+                onclick="setProfile('RAMPA')"
+            >
+                Rampa
+            </button>
+
+        </div>
+
+        <div style="margin-top:25px">
+
+            <label>Estado</label>
+
+            <strong id="moving">
+                --
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <!-- PID -->
+
+    <div class="card full">
+
+        <h2>Control PID</h2>
+
+        <div class="pid-grid">
+
+            <div>
+                <label>Kp</label>
+                <input id="kp" type="number" min="0" step="0.001">
+            </div>
+
+            <div>
+                <label>Ki</label>
+                <input id="ki" type="number" min="0" step="0.001">
+            </div>
+
+            <div>
+                <label>Kd</label>
+                <input id="kd" type="number" min="0" step="0.001">
+            </div>
+
+        </div>
+
+        <button
+            style="margin-top:15px"
+            onclick="setPID()"
+        >
+            Aplicar PID
+        </button>
+
+    </div>
+
+
+    <!-- TELEMETRIA -->
+
+    <div class="card full">
+
+        <h2>Telemetría</h2>
+
+        <div class="telemetry">
+
+            <div class="metric">
+                <span>Error angular</span>
+                <strong id="errorAngle">--</strong>
+            </div>
+
+            <div class="metric">
+                <span>PWM</span>
+                <strong id="pwm">--</strong>
+            </div>
+
+            <div class="metric">
+                <span>Dirección</span>
+                <strong id="direction">--</strong>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div id="message"></div>
+
+</main>
+
+
+<script>
+
+let refreshing = false;
+
+
+/* ============================================================
+   COMUNICACION
+   ============================================================ */
+
+async function sendCommand(command) {
+
+    const response = await fetch("/api/command", {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            command: command
+        })
+
+    });
+
+
+    const data = await response.json();
+
+
+    if (!data.ok) {
+        throw new Error(data.error || "Error de comunicación");
+    }
+
+
+    if (data.response.startsWith("ERROR")) {
+        throw new Error(data.response);
+    }
+
+
+    return data.response;
+}
+
+
+/* ============================================================
+   PARSER GET STATUS
+   ============================================================ */
+
+function parseStatus(response) {
+
+    if (!response.startsWith("OK "))
+        throw new Error("Respuesta inválida");
+
+
+    const fields = {};
+
+    const tokens = response
+        .substring(3)
+        .trim()
+        .split(/\s+/);
+
+
+    for (const token of tokens) {
+
+        const index = token.indexOf("=");
+
+        if (index === -1)
+            continue;
+
+
+        const key = token.substring(0, index);
+        const value = token.substring(index + 1);
+
+        fields[key] = value;
+    }
+
+
+    return fields;
+}
+
+
+/* ============================================================
+   ACTUALIZAR PANTALLA
+   ============================================================ */
+
+function updateUI(status) {
+
+    document.getElementById("position").textContent =
+        Number(status.POSITION).toFixed(2);
+
+    document.getElementById("setpoint").textContent =
+        Number(status.SETPOINT).toFixed(2);
+
+    document.getElementById("errorAngle").textContent =
+        Number(status.ERROR).toFixed(2) + " °";
+
+    document.getElementById("pwm").textContent =
+        status.PWM;
+
+    document.getElementById("direction").textContent =
+        directionText(status.DIRECTION);
+
+
+    document.getElementById("moving").textContent =
+        status.MOVING === "1"
+        ? "En movimiento"
+        : "Detenido";
+
+
+    /*
+     * No pisar inputs mientras el usuario
+     * está escribiendo en ellos.
+     */
+
+    if (document.activeElement !== document.getElementById("kp"))
+        document.getElementById("kp").value = status.KP;
+
+    if (document.activeElement !== document.getElementById("ki"))
+        document.getElementById("ki").value = status.KI;
+
+    if (document.activeElement !== document.getElementById("kd"))
+        document.getElementById("kd").value = status.KD;
+
+
+    document
+        .getElementById("btnEscalon")
+        .classList.toggle(
+            "selected",
+            status.PROFILE === "ESCALON"
+        );
+
+
+    document
+        .getElementById("btnRampa")
+        .classList.toggle(
+            "selected",
+            status.PROFILE === "RAMPA"
+        );
+
+
+    setConnected(true);
+}
+
+
+function directionText(direction) {
+
+    if (direction === "1")
+        return "Positiva";
+
+    if (direction === "-1")
+        return "Negativa";
+
+    return "Detenido";
+}
+
+
+/* ============================================================
+   REFRESH
+   ============================================================ */
+
+async function refreshStatus() {
+
+    if (refreshing)
+        return;
+
+    refreshing = true;
+
+
+    try {
+
+        const response =
+            await sendCommand("GET STATUS");
+
+        const status =
+            parseStatus(response);
+
+        updateUI(status);
+
+    }
+
+    catch (error) {
+
+        setConnected(false);
+
+    }
+
+    finally {
+
+        refreshing = false;
+
+    }
+}
+
+
+/* ============================================================
+   SET ANGLE
+   ============================================================ */
+
+async function setAngle() {
+
+    const input =
+        document.getElementById("angleInput");
+
+    const angle =
+        Number(input.value);
+
+
+    if (
+        input.value.trim() === "" ||
+        !Number.isFinite(angle) ||
+        angle < 0 ||
+        angle > 360
+    ) {
+
+        showMessage(
+            "El ángulo debe estar entre 0° y 360°.",
+            false
+        );
+
+        return;
+    }
+
+
+    try {
+
+        await sendCommand(
+            `SET ANGLE ${angle}`
+        );
+
+        showMessage(
+            "Nuevo ángulo enviado.",
+            true
+        );
+
+        refreshStatus();
+
+    }
+
+    catch (error) {
+
+        showMessage(
+            error.message,
+            false
+        );
+
+    }
+}
+
+
+/* ============================================================
+   PID
+   ============================================================ */
+
+async function setPID() {
+
+    const kp = Number(
+        document.getElementById("kp").value
+    );
+
+    const ki = Number(
+        document.getElementById("ki").value
+    );
+
+    const kd = Number(
+        document.getElementById("kd").value
+    );
+
+
+    if (
+        !Number.isFinite(kp) ||
+        !Number.isFinite(ki) ||
+        !Number.isFinite(kd) ||
+        kp < 0 ||
+        ki < 0 ||
+        kd < 0
+    ) {
+
+        showMessage(
+            "Kp, Ki y Kd deben ser valores positivos o cero.",
+            false
+        );
+
+        return;
+    }
+
+
+    try {
+
+        await sendCommand(`SET KP ${kp}`);
+        await sendCommand(`SET KI ${ki}`);
+        await sendCommand(`SET KD ${kd}`);
+
+
+        showMessage(
+            "Parámetros PID actualizados.",
+            true
+        );
+
+
+        refreshStatus();
+
+    }
+
+    catch (error) {
+
+        showMessage(
+            error.message,
+            false
+        );
+
+    }
+}
+
+
+/* ============================================================
+   PROFILE
+   ============================================================ */
+
+async function setProfile(profile) {
+
+    try {
+
+        await sendCommand(
+            `SET PROFILE ${profile}`
+        );
+
+
+        showMessage(
+            `Perfil ${profile} seleccionado.`,
+            true
+        );
+
+
+        refreshStatus();
+
+    }
+
+    catch (error) {
+
+        showMessage(
+            error.message,
+            false
+        );
+
+    }
+}
+
+
+/* ============================================================
+   ESTADO DE CONEXION
+   ============================================================ */
+
+function setConnected(connected) {
+
+    const dot =
+        document.getElementById("connectionDot");
+
+    const text =
+        document.getElementById("connectionText");
+
+
+    dot.classList.toggle(
+        "connected",
+        connected
+    );
+
+
+    text.textContent =
+        connected
+        ? "EGA conectada"
+        : "Sin comunicación";
+}
+
+
+/* ============================================================
+   MENSAJES
+   ============================================================ */
+
+function showMessage(message, success) {
+
+    const element =
+        document.getElementById("message");
+
+
+    element.textContent = message;
+
+    element.className =
+        success
+        ? "success"
+        : "error";
+
+
+    setTimeout(() => {
+
+        element.textContent = "";
+
+    }, 4000);
+}
+
+
+/* ============================================================
+   INICIO
+   ============================================================ */
+
+refreshStatus();
+
+setInterval(
+    refreshStatus,
+    500
+);
+
+</script>
+
+</body>
+</html>

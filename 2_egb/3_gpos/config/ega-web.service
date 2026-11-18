@@ -1,0 +1,15 @@
+[Unit]
+Description=EGA Web Interface
+After=network.target
+
+[Service]
+Type=simple
+User=lucas
+Group=dialout
+WorkingDirectory=/home/lucas/ega_egb/web
+ExecStart=/usr/bin/python3 /home/lucas/ega_egb/web/server.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
