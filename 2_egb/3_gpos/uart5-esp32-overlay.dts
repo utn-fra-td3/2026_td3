@@ -1,0 +1,33 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2711";
+
+	/* Grupo de pinctrl propio: GPIO12/GPIO13 en ALT4 (TXD5/RXD5)*/
+	fragment@0 {
+		target = <&gpio>;
+		__overlay__ {
+			esp32_link_pins: esp32_link_pins {
+				brcm,pins = <12 13>;
+				brcm,function = <3>; /* ALT4: GPIO12=TXD5, GPIO13=RXD5 */
+				brcm,pull = <0 2>;   /* TX sin pull, RX con pull-up */
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&uart5>;
+		__overlay__ {
+			pinctrl-names = "default";
+			pinctrl-0 = <&esp32_link_pins>;
+			status = "okay";
+
+			esp32_link: esp32-link {
+				compatible = "td3,esp32-link";
+				current-speed = <115200>;
+				status = "okay";
+			};
+		};
+	};
+};
