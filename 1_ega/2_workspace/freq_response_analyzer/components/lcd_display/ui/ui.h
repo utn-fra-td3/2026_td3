@@ -18,17 +18,22 @@ extern "C" {
 
 ///////////////////// SCREENS ////////////////////
 
-#include "screens/ui_Screen1.h"
+#include "screens/ui_scrconfig.h"
+#include "screens/ui_scrsweep.h"
 
 ///////////////////// VARIABLES ////////////////////
 
+extern lv_anim_t * cursorblink_Animation(lv_obj_t * TargetObject, int delay);
+extern lv_anim_t * animindicatorpulse_Animation(lv_obj_t * TargetObject, int delay);
 
 // EVENTS
 
 extern lv_obj_t * ui____initial_actions0;
 
 // FONTS
-LV_FONT_DECLARE(ui_font_robotomono_14);
+LV_FONT_DECLARE(ui_font_RobotoMono12);
+LV_FONT_DECLARE(ui_font_RobotoMono14);
+LV_FONT_DECLARE(ui_font_RobotoMono18);
 
 // UI INIT
 void ui_init(void);

@@ -4,8 +4,33 @@
 // Project name: freq_response_analyzer
 
 #include "ui.h"
+#include "app_common.h"
 
-void on_btn_test_clicked(lv_event_t * e)
+void ui_event_btn_start(lv_event_t *e)
 {
-	// Your code here
+    menu_event_msg_t ev = {
+        .type = MENU_EVT_BTN_START,
+    };
+    xQueueSend(queue_menu_events, &ev, portMAX_DELAY);
+}
+
+void ui_event_btn_pausar(lv_event_t *e)
+{
+    menu_event_msg_t ev = {
+        .type = MENU_EVT_BTN_PAUSE,
+    };
+    xQueueSend(queue_menu_events, &ev, portMAX_DELAY);
+}
+
+void ui_event_cfg_popup_ok(lv_event_t *e)
+{
+    lv_obj_add_flag(ui_uicfgpopup, LV_OBJ_FLAG_HIDDEN);
+}
+
+void ui_event_btn_cancelar(lv_event_t *e)
+{
+    menu_event_msg_t ev = {
+        .type = MENU_EVT_BTN_CANCEL,
+    };
+    xQueueSend(queue_menu_events, &ev, portMAX_DELAY);
 }

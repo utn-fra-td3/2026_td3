@@ -1,0 +1,19 @@
+{
+  "codename": "RobotoMono12",
+  "ttf_path": "/assets/RobotoMono-Regular.ttf",
+  "bin_path": "/assets\\ui_font_RobotoMono12.bin",
+  "c_path": "/assets\\ui_font_RobotoMono12.c",
+  "cfg_path": "/assets\\ui_font_RobotoMono12.fcfg",
+  "size": 12,
+  "bpp": 4,
+  "letters": 0,
+  "ranges": [
+    "0x20-0x7F",
+    " 0xA1",
+    " 0xBF",
+    " 0xC0-0xFF"
+  ],
+  "symbols": "áéíóúüñÁÉÍÓÚÜÑ¿¡ ",
+  "customparams": "--no-compress --no-prefilter",
+  "uploaded": false
+}

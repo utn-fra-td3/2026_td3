@@ -39,9 +39,9 @@
         "other_text_thickness": 0.15,
         "other_text_upright": false,
         "pads": {
-          "drill": 3.2,
-          "height": 3.2,
-          "width": 3.2
+          "drill": 0.7,
+          "height": 2.25,
+          "width": 2.25
         },
         "silk_line_width": 0.1,
         "silk_text_italic": false,
@@ -60,12 +60,7 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [
-        [
-          "unconnected_items|11700000|89600000|F.Cu|4|ff3a481c-b716-44e0-9013-c9afaec46845|5bc6e0b7-5809-4c52-90c7-b1d51d2c37a0",
-          "Conexion interna"
-        ]
-      ],
+      "drc_exclusions": [],
       "meta": {
         "version": 2
       },
@@ -541,7 +536,7 @@
     "last_paths": {
       "idf": "",
       "netlist": "",
-      "plot": "",
+      "plot": "./",
       "specctra_dsn": "",
       "vrml": ""
     },
