@@ -1,0 +1,35 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "brcm,bcm2711";
+
+    fragment@0 {
+        target = <&gpio>;
+
+        __overlay__ {
+            ega_link_pins: ega_link_pins {
+                brcm,pins = <4 5>;
+                brcm,function = <3>;
+                brcm,pull = <0 2>;
+            };
+        };
+    };
+
+    fragment@1 {
+        target = <&uart3>;
+
+        __overlay__ {
+            pinctrl-names = "default";
+            pinctrl-0 = <&ega_link_pins>;
+
+            status = "okay";
+
+            ega_link: ega-link {
+                compatible = "td3,ega-link";
+                current-speed = <115200>;
+                status = "okay";
+            };
+        };
+    };
+};
