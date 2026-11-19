@@ -1,0 +1,32 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2711";
+
+	fragment@0 {
+		target = <&gpio>;
+		__overlay__ {
+			osc_pins: osc_pins {
+				brcm,pins = <4 5>;
+				brcm,function = <3>;   /* codigo 3 = ALT4 */
+				brcm,pull = <0 2>;     /* TX sin pull, RX con pull-up */
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&uart3>;
+		__overlay__ {
+			pinctrl-names = "default";
+			pinctrl-0 = <&osc_pins>;
+			status = "okay";
+
+			osc: osc-esp32 {
+				compatible = "utnfra,osc-esp32";
+				current-speed = <115200>;
+				status = "okay";
+			};
+		};
+	};
+};
