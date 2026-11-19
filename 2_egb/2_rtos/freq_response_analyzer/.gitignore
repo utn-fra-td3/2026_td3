@@ -1,0 +1,13 @@
+# ESP-IDF build
+build/
+managed_components/
+sdkconfig.old
+
+# VSCode
+.vscode/
+
+# Dev Container
+.devcontainer/
+
+# Documentacion interna
+docs/
