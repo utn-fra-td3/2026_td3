@@ -14,6 +14,8 @@ QueueHandle_t queue_display = NULL;
 QueueHandle_t queue_nvs_cmd = NULL;
 QueueHandle_t queue_uart_tx = NULL;
 
+
+
 void app_main(void)
 {
 
