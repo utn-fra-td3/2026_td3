@@ -24,11 +24,10 @@ Uso del panel
 2. Esperar la primera respuesta de estado. «EGA en línea» significa que la
    consulta GET recibió datos; no certifica una tensión física concreta.
 3. Cada tarjeta muestra tensión medida, corriente, consigna, límites y fallas.
-4. Para ajustar una consigna admitida por el firmware Pico, usar de 5 a 30 V.
-   El campo web todavía permite de 0 a 30 V: un valor menor que 5 V llega
-   traducido a la Pico, pero ella responde ERR RANGE.
+4. Para ajustar la tensión de salida (VOUT), ingresar una magnitud de 0 a 30 V
+   en la rama elegida y pulsar Aplicar.
 5. Los límites de corriente se editan en pasos de 0,05 A entre 0,10 y 0,75 A.
-   Los de sobretensión se editan entre 5 y 40 V en pasos de 0,5 V.
+   El umbral de sobretensión (OV) se ajusta de 5 a 40 V en pasos de 0,5 V.
 6. Apagar la rama correspondiente antes de cambiar sus límites.
 7. Encender y Apagar controlan cada rama; Restablecer solicita borrar la falla
    OC/OV y mantiene la salida apagada.
@@ -49,7 +48,7 @@ Diagnóstico básico
 «Sin respuesta»: comprobar alimentación de Pico, enlace UART, módulo, nodo
 /dev/ega_uart y permisos. El servicio puede estar activo sin enlace funcional.
 «Comando no permitido»: la validación web rechazó el formato o el rango.
-«ERR RANGE»: la Pico rechazó un valor; revisar especialmente consignas < 5 V.
+«ERR RANGE»: comprobar que el valor enviado esté dentro del rango del parámetro elegido.
 Un límite no cambia: apagar la salida y consultar estado de nuevo. «OK QUEUED»
 no equivale a que el nuevo límite se haya aplicado.
 

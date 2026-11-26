@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
+#include <stdint.h>
 
 #define DEFAULT_DEVICE "/dev/ega_uart"
 #define DEFAULT_TIMEOUT_MS 1500
@@ -64,41 +66,61 @@ static void uppercase(char *text) {
     }
 }
 
-static bool valid_command(const char *command) {
-    char setting[4];
-    char branch;
-    char state[4];
-    float value;
-    int consumed = 0;
+static int translate_command(const char *command, char *wire, size_t capacity) {
+    char input[COMMAND_SIZE];
+    if (strlen(command) >= sizeof(input)) return -1;
+    strcpy(input, command);
+    uppercase(input);
 
-    if (strcmp(command, "GET") == 0 || strcmp(command, "SAVE") == 0) {
-        return true;
-    }
-    if (sscanf(command, "RESET %c %n", &branch, &consumed) == 1 &&
-        command[consumed] == '\0') {
-        return branch == 'P' || branch == 'N';
-    }
-    consumed = 0;
-    if (sscanf(command, "SET %3s %f %n", setting, &value, &consumed) == 2 &&
-        command[consumed] == '\0') {
-        if (strcmp(setting, "P") == 0 || strcmp(setting, "N") == 0) {
-            return value >= 0.0f && value <= 30.0f;
+    const char *spaces = " \t\r\n";
+    char *verb = strtok(input, spaces);
+    char *key = strtok(NULL, spaces);
+    char *arg = strtok(NULL, spaces);
+    if (!verb || strtok(NULL, spaces)) return -1;
+
+    int length;
+    if (!key && (!strcmp(verb, "GET") || !strcmp(verb, "SAVE"))) {
+        length = snprintf(wire, capacity, "%s", verb);
+    } else if (key && (!strcmp(verb, "OUT") || !strcmp(verb, "RESET"))) {
+        if (strcmp(key, "P") && strcmp(key, "N")) return -1;
+        int branch = key[0] == 'N';
+        if (!strcmp(verb, "RESET") && !arg) {
+            length = snprintf(wire, capacity, "RST %d", branch);
+        } else if (!strcmp(verb, "OUT") && arg && (!strcmp(arg, "ON") || !strcmp(arg, "OFF"))) {
+            length = snprintf(wire, capacity, "OUT %d %s", branch, arg);
+        } else {
+            return -1;
         }
-        if (strcmp(setting, "ILP") == 0 || strcmp(setting, "ILN") == 0) {
-            return value >= 0.10f && value <= 0.75f;
+    } else if (!strcmp(verb, "SET") && key && arg) {
+        char *end;
+        double value = strtod(arg, &end);
+        if (*end) return -1;
+        const char *setting;
+        if (!strcmp(key, "P") || !strcmp(key, "N")) {
+            if (!(value >= 0.0 && value <= 30.0)) return -1;
+            setting = "V";
+        } else if (!strcmp(key, "ILP") || !strcmp(key, "ILN")) {
+            if (!(value >= 0.10 && value <= 0.75)) return -1;
+            int steps = (int)(value * 20.0 + 0.5);
+            double delta = value - steps / 20.0;
+            if (delta < -0.000001 || delta > 0.000001) return -1;
+            setting = "IL";
+        } else if (!strcmp(key, "VLP") || !strcmp(key, "VLN")) {
+            if (!(value >= 5.0 && value <= 40.0)) return -1;
+            setting = "VL";
+        } else {
+            return -1;
         }
-        if (strcmp(setting, "VLP") == 0 || strcmp(setting, "VLN") == 0) {
-            return value >= 5.0f && value <= 40.0f;
-        }
-        return false;
+        int branch = key[strlen(key) - 1] == 'N';
+        length = snprintf(wire, capacity, "%s %d %s", setting, branch, arg);
+    } else {
+        return -1;
     }
-    consumed = 0;
-    if (sscanf(command, "OUT %c %3s %n", &branch, state, &consumed) == 2 &&
-        command[consumed] == '\0') {
-        return (branch == 'P' || branch == 'N') &&
-               (strcmp(state, "ON") == 0 || strcmp(state, "OFF") == 0);
-    }
-    return false;
+    return length >= 0 && (size_t)length < capacity ? 0 : -1;
+}
+
+static bool is_async_notification(const char *line) {
+    return strncmp(line, "PROT ", 5) == 0;
 }
 
 static int write_all(int fd, const char *data, size_t length) {
@@ -116,6 +138,12 @@ static int write_all(int fd, const char *data, size_t length) {
     return 0;
 }
 
+static int64_t monotonic_ms(void) {
+    struct timespec ts;
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) return -1;
+    return (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+}
+
 static int exchange_command(int fd, const char *command, int timeout_ms,
                             char *response, size_t response_size) {
     struct pollfd descriptor = {.fd = fd, .events = POLLIN};
@@ -125,8 +153,13 @@ static int exchange_command(int fd, const char *command, int timeout_ms,
         fprintf(stderr, "Error enviando el comando: %s\n", strerror(errno));
         return -1;
     }
+    int64_t start = monotonic_ms();
+    if (start < 0) return -1;
     while (used + 1U < response_size) {
-        int ready = poll(&descriptor, 1, timeout_ms);
+        int64_t now = monotonic_ms();
+        if (now < 0) return -1;
+        int64_t remaining = start + timeout_ms - now;
+        int ready = remaining > 0 ? poll(&descriptor, 1, (int)remaining) : 0;
         if (ready == 0) {
             fprintf(stderr, "Timeout: la EGA no respondio en %d ms\n", timeout_ms);
             return -1;
@@ -152,6 +185,11 @@ static int exchange_command(int fd, const char *command, int timeout_ms,
             if (count == 1 && byte != '\r') {
                 if (byte == '\n') {
                     response[used] = '\0';
+                    if (is_async_notification(response)) {
+                        fprintf(stderr, "%s\n", response);
+                        used = 0;
+                        continue;
+                    }
                     return 0;
                 }
                 response[used++] = byte;
@@ -169,11 +207,12 @@ static int run_command(int fd, char *command, int timeout_ms) {
 
     trim(command);
     uppercase(command);
-    if (!valid_command(command)) {
+    char wire[COMMAND_SIZE];
+    if (translate_command(command, wire, sizeof(wire)) != 0) {
         fprintf(stderr, "Comando invalido: %s\nEscriba HELP para ver la lista.\n", command);
         return -1;
     }
-    if (exchange_command(fd, command, timeout_ms, response, sizeof(response)) != 0) {
+    if (exchange_command(fd, wire, timeout_ms, response, sizeof(response)) != 0) {
         return -1;
     }
     puts(response);
@@ -206,6 +245,7 @@ static int interactive_mode(int fd, int timeout_ms) {
     }
 }
 
+#ifndef EGA_CLI_TEST
 int main(int argc, char **argv) {
     const char *device = DEFAULT_DEVICE;
     int timeout_ms = DEFAULT_TIMEOUT_MS;
@@ -261,3 +301,5 @@ int main(int argc, char **argv) {
     close(fd);
     return result == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
+
+#endif

@@ -6,7 +6,7 @@
 
 La página usa nombres `P` y `N`. `translate_command` los convierte en índices `0` y `1` antes de escribir en `/dev/ega_uart`: `SET P 12.5` se envía como `V 0 12.5`, `OUT N OFF` como `OUT 1 OFF` y `RESET P` como `RST 0`. `GET` y `SAVE` conservan sus nombres. Una respuesta `OK QUEUED` confirma el encolado en la Pico; no confirma la tensión alcanzada ni que `SAVE` terminó de escribir Flash. Los avisos `PROT` se separan de la respuesta y se exponen en el campo JSON `notifications`.
 
-La interfaz y `validate_command` aún aceptan consignas de 0 a 30 V, mientras el firmware Pico de esta entrega acepta `V` desde 5 V. Entre 0 y menos de 5 V, el servidor envía la orden traducida y devuelve el error `ERR RANGE` de la Pico. Este desajuste sigue pendiente.
+En ambas ramas, la consigna de tensión de salida (VOUT) se expresa como una magnitud de 0 a 30 V. El umbral de protección por sobretensión (OV) se ajusta de 5 a 40 V.
 
 ## Actualización de la página
 

@@ -1,4 +1,4 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <ctype.h>
@@ -64,7 +64,7 @@
 #define DISPLAY_UPDATE_MS 200U
 #define USB_DIAGNOSTIC_PERIOD_MS 1000U
 
-#define VOLTAGE_SETPOINT_MIN 5.0f
+#define VOLTAGE_SETPOINT_MIN 0.0f
 #define VOLTAGE_SETPOINT_MAX 30.0f
 #define VOLTAGE_SETPOINT_INITIAL 5.0f
 #define VOLTAGE_SETPOINT_STEP 0.5f
@@ -885,6 +885,18 @@ static void central_apply_uart_command(const uart_event_t *command) {
     if (queue_flash) {
         xQueueSend(flash_queue, &flash_values, 0U);
     }
+}
+
+void vApplicationMallocFailedHook(void) {
+    taskDISABLE_INTERRUPTS();
+    for (;;) tight_loop_contents();
+}
+
+void vApplicationStackOverflowHook(TaskHandle_t task, char *name) {
+    (void)task;
+    (void)name;
+    taskDISABLE_INTERRUPTS();
+    for (;;) tight_loop_contents();
 }
 
 // =====================================================
