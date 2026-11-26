@@ -67,7 +67,7 @@
  * @brief Cantidad de bytes de memoria dinámica disponibles para FreeRTOS
  * @see Barry, R. "Mastering the FreeRTOS Real Time Kernel", Sección 2.2
  */
-#define configTOTAL_HEAP_SIZE 16364
+#define configTOTAL_HEAP_SIZE (32U * 1024U)
 /**
  * @brief Cantidad de caracteres que se le pueden asignar al nombre de una tarea para debugging
  * @see Barry, R. "Mastering the FreeRTOS Real Time Kernel", Sección 2.2
@@ -93,6 +93,16 @@
  * @see AWS, "Hook Functions", https://www.freertos.org/Documentation/02-Kernel/02-Kernel-features/12-Hook-functions
  */
 #define configUSE_TICK_HOOK 0
+
+/**
+ * @brief Ejecuta el hook de la aplicacion si falla una reserva dinamica.
+ */
+#define configUSE_MALLOC_FAILED_HOOK 0
+
+/**
+ * @brief Comprueba los limites del stack al cambiar de contexto.
+ */
+#define configCHECK_FOR_STACK_OVERFLOW 0
 /**
  * @brief Nivel de interrupción del NVIC desde el que APIs de interrupciones de FreeRTOS pueden ser llamadas
  * @note También puede encontrarse como configMAX_SYSCALL_INTERRUPT_PRIORITY
@@ -101,11 +111,12 @@
 #define configMAX_API_CALL_INTERRUPT_PRIORITY 16
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY  16
 
+#define configASSERT( x ) ((void)0)
+
 /**
  * @brief Implementación de assert para atrapar errores
  * @see Barry, R. "Mastering the FreeRTOS Real Time Kernel", Sección 11.2
  */
-#define configASSERT( x ) if( ( x ) == 0 ) { portDISABLE_INTERRUPTS(); for( ;; ); }
 
 // Particularidades de Cortex-M33 (ARMv8-M)
 

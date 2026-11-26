@@ -1,0 +1,47 @@
+REFERENCIAS UTILIZADAS EN LA EGA Y LA EGB
+
+Documentación incluida en este directorio
+-----------------------------------------
+- Intel_80386_Datasheet.pdf
+  Intel 80386 Hardware Reference Manual.
+
+- FreeRTOS_Reference_Manual.pdf
+  API y configuración del kernel FreeRTOS.
+
+- Linux_Kernel_Module_Programming_Guide.pdf
+  Desarrollo y carga de módulos del kernel Linux.
+
+- Device_Trees_Everywhere.pdf
+  Introducción y uso de Device Tree.
+
+- Apunte_UART_Driver.pdf
+  Material de la cátedra sobre controladores UART.
+
+- RP2350_Datasheet.pdf
+  Arquitectura y periféricos del microcontrolador de la Raspberry Pi Pico 2 W.
+
+Documentación oficial consultada en línea
+----------------------------------------
+- Intel 64 and IA-32 Architectures Software Developer's Manual, Volume 3A.
+  https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
+
+- Raspberry Pi Pico C/C++ SDK.
+  https://www.raspberrypi.com/documentation/microcontrollers/c_sdk.html
+
+- Raspberry Pi Device Trees, overlays y UART.
+  https://www.raspberrypi.com/documentation/computers/configuration.html
+
+- Linux kernel driver API.
+  https://docs.kernel.org/driver-api/index.html
+
+- Texas Instruments ADS1115, hoja de datos SBAS444.
+  https://www.ti.com/product/ADS1115
+
+- Microchip TC4426/TC4427/TC4428, hoja de datos DS20001422.
+  https://www.microchip.com/en-us/product/tc4427
+
+- onsemi FQP30N06L, hoja de datos.
+  https://www.onsemi.com/products/discrete-power-modules/mosfets/fqp30n06l
+
+- Microchip MCP6001/2/4, hoja de datos.
+  https://www.microchip.com/en-us/product/mcp6004

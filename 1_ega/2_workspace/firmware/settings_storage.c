@@ -12,6 +12,8 @@
 #define SETTINGS_VERSION 1U
 #define SETTINGS_FLASH_OFFSET (PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE)
 
+extern uint8_t __flash_binary_end;
+
 typedef struct {
     uint32_t magic;
     uint32_t version;
@@ -27,6 +29,7 @@ static uint32_t settings_checksum(const flash_record_t *record) {
 }
 
 bool settings_storage_load(stored_settings_t *settings) {
+    if (settings == NULL) return false;
     const flash_record_t *record = (const flash_record_t *)(XIP_BASE + SETTINGS_FLASH_OFFSET);
     if (record->magic != SETTINGS_MAGIC || record->version != SETTINGS_VERSION) return false;
     if (record->checksum != settings_checksum(record)) return false;
@@ -34,7 +37,9 @@ bool settings_storage_load(stored_settings_t *settings) {
     return true;
 }
 
-void settings_storage_save(const stored_settings_t *settings) {
+bool settings_storage_save(const stored_settings_t *settings) {
+    if (settings == NULL) return false;
+    if ((uintptr_t)&__flash_binary_end > (uintptr_t)(XIP_BASE + SETTINGS_FLASH_OFFSET)) return false;
     uint8_t flash_page[FLASH_PAGE_SIZE];
     memset(flash_page, 0xFF, sizeof(flash_page));
     flash_record_t record = {.magic = SETTINGS_MAGIC, .version = SETTINGS_VERSION, .settings = *settings, .checksum = 0U};
@@ -44,4 +49,6 @@ void settings_storage_save(const stored_settings_t *settings) {
     flash_range_erase(SETTINGS_FLASH_OFFSET, FLASH_SECTOR_SIZE);
     flash_range_program(SETTINGS_FLASH_OFFSET, flash_page, FLASH_PAGE_SIZE);
     restore_interrupts(interrupts);
+    stored_settings_t verification;
+    return settings_storage_load(&verification) && memcmp(&verification, settings, sizeof(verification)) == 0;
 }

@@ -24,7 +24,6 @@ typedef struct {
 } encoder_t;
 
 bool encoder_init(encoder_t *encoder, uint32_t clk_gpio, uint32_t dt_gpio, uint32_t switch_gpio, uint32_t debounce_ms, uint32_t long_press_ms, uint32_t now_ms);
-int encoder_poll_rotation(encoder_t *encoder);
-encoder_button_event_t encoder_poll_button(encoder_t *encoder, uint32_t now_ms);
+bool encoder_process_event(encoder_t *encoder, uint32_t gpio, uint32_t levels, uint32_t now_ms, int *movement, encoder_button_event_t *button_event);
 
 #endif
