@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control DDS - UTN FRA TD3</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center p-4">
+
+  <!-- Header -->
+  <header class="w-full max-w-5xl py-4 flex items-center justify-between border-b border-slate-800">
+    <div>
+      <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+        <span>Generador de Señales DDS</span>
+        <span class="text-xs font-mono bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-full">v2.0 IOCTL</span>
+      </h1>
+      <p class="text-xs text-slate-400">Driver Char Device (/dev/generador_dds) &middot; ESP32 FreeRTOS</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <button onclick="requestSync()" id="btn-sync" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+        </svg>
+        IOCTL Sync
+      </button>
+      <div id="status-badge" class="px-3 py-1 text-xs font-semibold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+        Conectando...
+      </div>
+    </div>
+  </header>
+
+  <main class="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+    
+    <!-- Columna Izquierda: Osciloscopio + Displays -->
+    <div class="lg:col-span-2 flex flex-col gap-6">
+      
+      <!-- Osciloscopio Virtual -->
+      <div class="bg-slate-800/60 p-5 rounded-2xl border border-slate-700/60 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-semibold text-slate-300">Salida Analógica Reconstruida</h2>
+          <span id="sync-indicator" class="text-[11px] text-slate-400 font-mono">Listo</span>
+        </div>
+        <div class="relative bg-slate-950 rounded-xl overflow-hidden border border-slate-800 h-44 flex items-center justify-center">
+          <canvas id="scopeCanvas" width="500" height="176" class="w-full h-full"></canvas>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 mt-4">
+          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-center">
+            <span class="text-[11px] text-slate-400 block uppercase tracking-wider">Frecuencia</span>
+            <span id="disp-freq" class="text-base font-mono font-bold text-sky-400">1000 Hz</span>
+          </div>
+          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-center">
+            <span class="text-[11px] text-slate-400 block uppercase tracking-wider">Forma</span>
+            <span id="disp-wave" class="text-base font-mono font-bold text-emerald-400">SENO</span>
+          </div>
+          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-center">
+            <span class="text-[11px] text-slate-400 block uppercase tracking-wider">Paso Encoder</span>
+            <span id="disp-step" class="text-base font-mono font-bold text-amber-400">100 Hz</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel de Control -->
+      <div class="bg-slate-800/60 p-5 rounded-2xl border border-slate-700/60 flex flex-col gap-5">
+        <div>
+          <label class="text-xs font-medium text-slate-300 mb-2 block uppercase tracking-wider">Forma de Onda</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="setWave(0)" id="btn-wave-0" class="wave-btn py-2 rounded-xl border font-semibold text-xs transition">Seno</button>
+            <button onclick="setWave(1)" id="btn-wave-1" class="wave-btn py-2 rounded-xl border font-semibold text-xs transition">Triángulo</button>
+            <button onclick="setWave(2)" id="btn-wave-2" class="wave-btn py-2 rounded-xl border font-semibold text-xs transition">Cuadrada</button>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <div class="flex justify-between items-center">
+            <label for="freq-input" class="text-xs font-medium text-slate-300 uppercase tracking-wider">Frecuencia DDS (100 - 20000 Hz)</label>
+            <div class="flex items-center gap-1">
+              <input type="number" id="freq-input" min="100" max="20000" step="10" value="1000"
+                     class="w-20 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-right font-mono text-xs focus:outline-none focus:border-sky-500">
+              <span class="text-xs text-slate-400">Hz</span>
+            </div>
+          </div>
+
+          <input type="range" id="freq-slider" min="100" max="20000" step="10" value="1000"
+                 class="w-full accent-sky-500 bg-slate-950 rounded-lg h-2 cursor-pointer">
+
+          <div class="flex gap-1.5 mt-1">
+            <button onclick="quickFreq(100)" class="flex-1 py-1 text-[11px] bg-slate-900 hover:bg-slate-700 rounded-lg border border-slate-700">100Hz</button>
+            <button onclick="quickFreq(1000)" class="flex-1 py-1 text-[11px] bg-slate-900 hover:bg-slate-700 rounded-lg border border-slate-700">1kHz</button>
+            <button onclick="quickFreq(5000)" class="flex-1 py-1 text-[11px] bg-slate-900 hover:bg-slate-700 rounded-lg border border-slate-700">5kHz</button>
+            <button onclick="quickFreq(10000)" class="flex-1 py-1 text-[11px] bg-slate-900 hover:bg-slate-700 rounded-lg border border-slate-700">10kHz</button>
+            <button onclick="quickFreq(20000)" class="flex-1 py-1 text-[11px] bg-slate-900 hover:bg-slate-700 rounded-lg border border-slate-700">20kHz</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Columna Derecha: Registro Histórico NVS Flash -->
+    <div class="bg-slate-800/60 p-5 rounded-2xl border border-slate-700/60 flex flex-col">
+      <div class="flex items-center justify-between mb-3 border-b border-slate-700/60 pb-3">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-200">NVS Storage Log</h2>
+          <p class="text-[11px] text-slate-400">Persistencia en Flash del ESP32</p>
+        </div>
+        <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono">1s Debounce</span>
+      </div>
+
+      <div class="flex-1 overflow-y-auto max-h-[480px] pr-1">
+        <table class="w-full text-left text-xs font-mono">
+          <thead>
+            <tr class="text-slate-400 border-b border-slate-800">
+              <th class="py-1.5 font-medium">Hora</th>
+              <th class="py-1.5 font-medium">Freq</th>
+              <th class="py-1.5 font-medium">Onda</th>
+              <th class="py-1.5 font-medium text-right">Paso</th>
+            </tr>
+          </thead>
+          <tbody id="nvs-table-body" class="divide-y divide-slate-800/60">
+            <!-- Filas dinámicas -->
+          </tbody>
+        </table>
+        <p id="empty-nvs-msg" class="text-xs text-slate-500 text-center py-8">Esperando eventos de guardado...</p>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let ws;
+    let state = { freq: 1000, wave: 0, step: 100 };
+    const waveNames = ["SENO", "TRIANGULAR", "CUADRADA"];
+
+    const canvas = document.getElementById("scopeCanvas");
+    const ctx = canvas.getContext("2d");
+    let phase = 0;
+
+    function connectWS() {
+      const loc = window.location;
+      const wsUrl = (loc.protocol === "https:" ? "wss://" : "ws://") + loc.host + "/ws";
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        const badge = document.getElementById("status-badge");
+        badge.textContent = "Online";
+        badge.className = "px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+      };
+
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "STATE_UPDATE") {
+          updateUI(msg.payload);
+        } else if (msg.type === "NVS_RECORD") {
+          addNvsRow(msg.payload);
+        } else if (msg.type === "NVS_HISTORY_INIT") {
+          msg.payload.forEach(addNvsRow);
+        } else if (msg.type === "IOCTL_SYNC_CONFIRMED") {
+          updateUI(msg.payload); // <-- Forzar actualización de UI con lo devuelto por el kernel
+          flashSyncIndicator();
+        }
+      };
+
+      ws.onclose = () => {
+        const badge = document.getElementById("status-badge");
+        badge.textContent = "Desconectado";
+        badge.className = "px-3 py-1 text-xs font-semibold rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30";
+        setTimeout(connectWS, 2000);
+      };
+    }
+
+    function updateUI(newState) {
+      state = { ...state, ...newState };
+      document.getElementById("disp-freq").textContent = `${state.freq} Hz`;
+      document.getElementById("disp-wave").textContent = waveNames[state.wave] || "SENO";
+      document.getElementById("disp-step").textContent = `${state.step} Hz`;
+
+      document.getElementById("freq-input").value = state.freq;
+      document.getElementById("freq-slider").value = state.freq;
+
+      for (let i = 0; i <= 2; i++) {
+        const btn = document.getElementById(`btn-wave-${i}`);
+        if (state.wave === i) {
+          btn.className = "wave-btn py-2 rounded-xl border font-semibold text-xs transition bg-sky-500 text-white border-sky-400 shadow-md shadow-sky-500/20";
+        } else {
+          btn.className = "wave-btn py-2 rounded-xl border font-semibold text-xs transition bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800";
+        }
+      }
+    }
+
+    function addNvsRow(record) {
+      const tbody = document.getElementById("nvs-table-body");
+      const emptyMsg = document.getElementById("empty-nvs-msg");
+      if (emptyMsg) emptyMsg.style.display = "none";
+
+      const tr = document.createElement("tr");
+      tr.className = "hover:bg-slate-800/40 transition text-slate-300";
+      tr.innerHTML = `
+        <td class="py-1.5 text-slate-400">${record.timestamp}</td>
+        <td class="py-1.5 text-sky-400 font-bold">${record.freq}Hz</td>
+        <td class="py-1.5 text-emerald-400">${waveNames[record.wave] || record.wave}</td>
+        <td class="py-1.5 text-right text-amber-400">${record.step}Hz</td>
+      `;
+      tbody.insertBefore(tr, tbody.firstChild);
+
+      while (tbody.children.length > 10) {
+        tbody.removeChild(tbody.lastChild);
+      }
+    }
+
+    function requestSync() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ action: "SYNC_IOCTL" }));
+      }
+    }
+
+    function flashSyncIndicator() {
+      const ind = document.getElementById("sync-indicator");
+      ind.textContent = "IOCTL Sincronizado";
+      ind.className = "text-[11px] text-emerald-400 font-mono font-bold";
+      setTimeout(() => {
+        ind.textContent = "Listo";
+        ind.className = "text-[11px] text-slate-400 font-mono";
+      }, 1500);
+    }
+
+    function setWave(waveIdx) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ action: "SET_WAVE", value: waveIdx }));
+      }
+    }
+
+    function sendFreq(val) {
+      let f = parseInt(val, 10);
+      if (isNaN(f)) return;
+      if (f < 100) f = 100;
+      if (f > 20000) f = 20000;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ action: "SET_FREQ", value: f }));
+      }
+    }
+
+    function quickFreq(val) { sendFreq(val); }
+
+    const slider = document.getElementById("freq-slider");
+    const numInput = document.getElementById("freq-input");
+    slider.addEventListener("input", (e) => { numInput.value = e.target.value; });
+    slider.addEventListener("change", (e) => { sendFreq(e.target.value); });
+    numInput.addEventListener("change", (e) => { sendFreq(e.target.value); });
+
+    function drawScope() {
+      ctx.fillStyle = "#020617";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = "#1e293b";
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 32) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
+
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = state.wave === 0 ? "#38bdf8" : state.wave === 1 ? "#34d399" : "#fbbf24";
+      ctx.beginPath();
+
+      const centerY = canvas.height / 2;
+      const amplitude = canvas.height * 0.35;
+      const cyclesVisible = Math.max(1, Math.min(8, state.freq / 1000 * 2));
+
+      for (let x = 0; x < canvas.width; x++) {
+        const t = (x / canvas.width) * cyclesVisible * 2 * Math.PI + phase;
+        let yNorm = 0;
+        if (state.wave === 0) yNorm = Math.sin(t);
+        else if (state.wave === 1) yNorm = (2 / Math.PI) * Math.asin(Math.sin(t));
+        else if (state.wave === 2) yNorm = Math.sin(t) >= 0 ? 1 : -1;
+
+        const y = centerY - yNorm * amplitude;
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      phase += 0.05;
+      requestAnimationFrame(drawScope);
+    }
+
+    connectWS();
+    drawScope();
+  </script>
+</body>
+</html>
